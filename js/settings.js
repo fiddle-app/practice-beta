@@ -5,7 +5,7 @@
 // =================================================
 // Release mic tracks between phases on Safari/iOS (so the mic indicator turns off).
 // On Chrome, keep the stream alive to avoid re-prompting each work phase.
-const BUILD_DATE = '2026-05-30 02:22';   // stamped automatically by deploy.sh — do not edit manually
+const BUILD_DATE = '2026-05-30 02:39';   // stamped automatically by deploy.sh — do not edit manually
 const IS_SAFARI  = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
 const DEFAULTS = {
@@ -36,7 +36,7 @@ const DEFAULTS = {
   // voice.js falls back to ['correct'] / ['wrong'] so the rep counter
   // always has at least one trigger word.
   vrGood:                ['correct', 'good'],
-  vrBad:                 ['wrong',   'restart'],
+  vrBad:                 ['wrong'],
   // Per-command overrides: keyed by command ID, value is { enabled: bool, trigger: string }.
   // trigger is comma-separated words/phrases replacing the builtin list; empty = use builtin.
   // Missing key = enabled with builtin triggers.

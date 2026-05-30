@@ -298,7 +298,7 @@ const VC_CMD_DEFS = [
   { id: 'cmdClose',      label: 'Close / end chunk',       builtin: 'close' },
   { id: 'cmdRepCounter', label: 'Open rep counter',        builtin: 'reps, counter' },
   { id: '__vrGood',      label: 'Words for "correct"',     builtin: 'correct, good' },
-  { id: '__vrBad',       label: 'Words for "wrong"',       builtin: 'wrong, restart' },
+  { id: '__vrBad',       label: 'Words for "wrong"',       builtin: 'wrong' },
   { id: 'cmdInfo',       label: 'Open info',               builtin: 'info, information' },
   { id: 'cmdSettings',   label: 'Open settings',           builtin: 'settings' },
 ];
