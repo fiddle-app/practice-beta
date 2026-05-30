@@ -207,6 +207,7 @@ $('s-voice').addEventListener('change', async e => {
     releaseMic();
   }
   if (typeof vcOnSettingChange === 'function') vcOnSettingChange('voiceCommands');
+  renderVcCmdList();
 });
 
 $('s-limit-vr').addEventListener('change', e => {
@@ -238,7 +239,7 @@ function doReset(clearMessages) {
     const val = DEFAULTS[key];
     settings[key] = Array.isArray(val) ? [...val] : val;
   }
-  saveSettings(); syncSettingsUI(); renderMsgList(); renderVrLists(); render();
+  saveSettings(); syncSettingsUI(); renderMsgList(); renderVcCmdList(); render();
   if (typeof vcOnSettingChange === 'function') {
     vcOnSettingChange('vcKeepLastWord');
     // Force the recognizer to pick up the restored defaults.
@@ -284,42 +285,6 @@ $('add-msg-btn').addEventListener('click', () => {
 
 // Voice Recognition synonym lists. `field` is 'vrGood' or 'vrBad'; `listId` is
 // the container element ID. Same edit/delete UX as renderMsgList — add via
-// the section's add-button below, edit inline, delete via × button. Any change
-// is persisted and re-armed in the recognizer via vcOnSettingChange.
-function renderVrList(field, listId) {
-  const list = $(listId); if (!list) return;
-  list.innerHTML = '';
-  const arr = Array.isArray(settings[field]) ? settings[field] : [];
-  arr.forEach((word, i) => {
-    const row = document.createElement('div'); row.className = 'msg-row';
-    const inp = document.createElement('input');
-    inp.type = 'text'; inp.className = 'msg-inp'; inp.value = word;
-    inp.addEventListener('input', () => {
-      settings[field][i] = inp.value;
-      saveSettings();
-    });
-    inp.addEventListener('change', () => {
-      // Commit on blur/enter — rebuild recognizer once the user is done typing
-      // rather than on every keystroke.
-      if (typeof vcOnSettingChange === 'function') vcOnSettingChange(field);
-    });
-    const del = document.createElement('button');
-    del.className = 'msg-del'; del.textContent = '\xd7';
-    del.addEventListener('click', () => {
-      settings[field].splice(i, 1);
-      saveSettings();
-      renderVrList(field, listId);
-      if (typeof vcOnSettingChange === 'function') vcOnSettingChange(field);
-    });
-    row.appendChild(inp); row.appendChild(del); list.appendChild(row);
-  });
-}
-
-function renderVrLists() {
-  renderVrList('vrGood', 'vr-good-list');
-  renderVrList('vrBad',  'vr-bad-list');
-}
-
 // ── Voice command override list ───────────────────────────────────
 const VC_CMD_DEFS = [
   { id: 'cmdStart',      label: 'Start',                   builtin: 'start' },
@@ -332,6 +297,8 @@ const VC_CMD_DEFS = [
   { id: 'cmdReplay',     label: 'Replay recording',        builtin: 'replay' },
   { id: 'cmdClose',      label: 'Close / end chunk',       builtin: 'close' },
   { id: 'cmdRepCounter', label: 'Open rep counter',        builtin: 'reps, counter' },
+  { id: '__vrGood',      label: 'Words for "correct"',     builtin: 'correct, good' },
+  { id: '__vrBad',       label: 'Words for "wrong"',       builtin: 'wrong, restart' },
   { id: 'cmdInfo',       label: 'Open info',               builtin: 'info, information' },
   { id: 'cmdSettings',   label: 'Open settings',           builtin: 'settings' },
 ];
@@ -340,11 +307,22 @@ function renderVcCmdList() {
   const container = $('vc-cmd-list');
   if (!container) return;
   if (!settings.vcCommandOverrides) settings.vcCommandOverrides = {};
+  const masterOn = settings.voiceCommands !== false;
   container.innerHTML = '';
   for (const def of VC_CMD_DEFS) {
-    const ov      = settings.vcCommandOverrides[def.id] || {};
-    const enabled = ov.enabled !== false;
-    const trigger = ov.trigger || '';
+    const isVrField = def.id === '__vrGood' || def.id === '__vrBad';
+    const vrField   = def.id === '__vrGood' ? 'vrGood' : 'vrBad';
+
+    let enabled, trigger;
+    if (isVrField) {
+      const arr = Array.isArray(settings[vrField]) ? settings[vrField] : [];
+      enabled = arr.length > 0;
+      trigger = arr.join(', ');
+    } else {
+      const ov = settings.vcCommandOverrides[def.id] || {};
+      enabled  = ov.enabled !== false;
+      trigger  = ov.trigger || '';
+    }
 
     const row = document.createElement('div');
     row.className = 'vc-cmd-row';
@@ -352,19 +330,27 @@ function renderVcCmdList() {
     // Toggle
     const tog = document.createElement('label');
     tog.className = 'tog-sw';
-    tog.innerHTML = `<input type="checkbox"${enabled ? ' checked' : ''}><div class="tog-track"></div><div class="tog-thumb"></div>`;
+    tog.innerHTML = `<input type="checkbox"${enabled ? ' checked' : ''}${!masterOn ? ' disabled' : ''}><div class="tog-track"></div><div class="tog-thumb"></div>`;
     const chk = tog.querySelector('input');
     chk.addEventListener('change', () => {
-      if (!settings.vcCommandOverrides[def.id]) settings.vcCommandOverrides[def.id] = {};
-      settings.vcCommandOverrides[def.id].enabled = chk.checked;
-      saveSettings();
+      if (isVrField) {
+        settings[vrField] = chk.checked
+          ? inp.value.split(',').map(s => s.trim()).filter(Boolean)
+          : [];
+        saveSettings();
+        if (typeof vcOnSettingChange === 'function') vcOnSettingChange(vrField);
+      } else {
+        if (!settings.vcCommandOverrides[def.id]) settings.vcCommandOverrides[def.id] = {};
+        settings.vcCommandOverrides[def.id].enabled = chk.checked;
+        saveSettings();
+      }
       labelEl.classList.toggle('vc-cmd-disabled', !chk.checked);
       inp.disabled = !chk.checked;
     });
 
     // Label
     const labelEl = document.createElement('div');
-    labelEl.className = 'vc-cmd-label' + (enabled ? '' : ' vc-cmd-disabled');
+    labelEl.className = 'vc-cmd-label' + (!masterOn || !enabled ? ' vc-cmd-disabled' : '');
     labelEl.textContent = def.label;
 
     // Trigger input
@@ -373,11 +359,17 @@ function renderVcCmdList() {
     inp.className = 'vc-cmd-trigger';
     inp.placeholder = def.builtin;
     inp.value = trigger;
-    inp.disabled = !enabled;
+    inp.disabled = !enabled || !masterOn;
     inp.addEventListener('change', () => {
-      if (!settings.vcCommandOverrides[def.id]) settings.vcCommandOverrides[def.id] = {};
-      settings.vcCommandOverrides[def.id].trigger = inp.value.toLowerCase().trim();
-      saveSettings();
+      if (isVrField) {
+        settings[vrField] = inp.value.split(',').map(s => s.trim()).filter(Boolean);
+        saveSettings();
+        if (typeof vcOnSettingChange === 'function') vcOnSettingChange(vrField);
+      } else {
+        if (!settings.vcCommandOverrides[def.id]) settings.vcCommandOverrides[def.id] = {};
+        settings.vcCommandOverrides[def.id].trigger = inp.value.toLowerCase().trim();
+        saveSettings();
+      }
     });
 
     row.appendChild(tog);
@@ -386,19 +378,6 @@ function renderVcCmdList() {
     container.appendChild(row);
   }
 }
-
-['add-vr-good-btn', 'add-vr-bad-btn'].forEach(btnId => {
-  const field  = btnId === 'add-vr-good-btn' ? 'vrGood'       : 'vrBad';
-  const listId = btnId === 'add-vr-good-btn' ? 'vr-good-list' : 'vr-bad-list';
-  $(btnId).addEventListener('click', () => {
-    if (!Array.isArray(settings[field])) settings[field] = [];
-    settings[field].push('');
-    saveSettings();
-    renderVrList(field, listId);
-    const inputs = $(listId).querySelectorAll('.msg-inp');
-    if (inputs.length) inputs[inputs.length - 1].focus();
-  });
-});
 
 function renderDiagLog() {
   const el = $('diag-log-display');
@@ -624,7 +603,7 @@ $('settings-btn').addEventListener('click', () => {
   _wasPaused = isPaused;
   _vcOverridesSnapshot = JSON.stringify(settings.vcCommandOverrides || {});
   if (!isPaused && phase !== 'ready') { isPaused = true; render(); }
-  syncSettingsUI(); renderMsgList(); renderVrLists(); renderVcCmdList(); renderDiagLog(); renderBootStatus();
+  syncSettingsUI(); renderMsgList(); renderVcCmdList(); renderDiagLog(); renderBootStatus();
   renderSwStatus(); renderMemStatus();
   applyDebugReveal();
   const sbd = $('settings-build-date');
@@ -681,7 +660,7 @@ $('s-done-btn').addEventListener('click', () => {
   // the user added but never filled in.
   const focused = document.activeElement;
   if (focused && focused.closest &&
-      focused.closest('#vr-good-list, #vr-bad-list, #vc-cmd-list')) {
+      focused.closest('#vc-cmd-list')) {
     focused.blur();
   }
   let vrChanged = false;
