@@ -129,6 +129,9 @@ function syncSettingsUI() {
   $('s-restq1').value = rq[0] || '';
   $('s-restq2').value = rq[1] || '';
   $('s-restq3').value = rq[2] || '';
+  const rqc = settings.restQClose || ['', ''];
+  $('s-restqc1').value = rqc[0] || '';
+  $('s-restqc2').value = rqc[1] || '';
   const sbd = $('s-build-date');
   if (sbd) sbd.textContent = 'build ' + (typeof BUILD_DATE === 'string' ? BUILD_DATE : '(unknown)');
   _syncingUI = false;
@@ -252,6 +255,12 @@ $('reset-cancel').addEventListener('click', () => { $('reset-overlay').classList
     settings.restQ[i] = $(id).value; saveSettings(); render();
   });
 });
+['s-restqc1','s-restqc2'].forEach((id, i) => {
+  $(id).addEventListener('input', () => {
+    if (!settings.restQClose) settings.restQClose = ['', ''];
+    settings.restQClose[i] = $(id).value; saveSettings(); render();
+  });
+});
 
 function renderMsgList() {
   const list = $('msg-list'); list.innerHTML = '';
@@ -309,6 +318,73 @@ function renderVrList(field, listId) {
 function renderVrLists() {
   renderVrList('vrGood', 'vr-good-list');
   renderVrList('vrBad',  'vr-bad-list');
+}
+
+// ── Voice command override list ───────────────────────────────────
+const VC_CMD_DEFS = [
+  { id: 'cmdStart',      label: 'Start',                   builtin: 'start' },
+  { id: 'cmdReady',      label: 'Ready (start screen)',     builtin: 'ready' },
+  { id: 'cmdDone',       label: 'End round',               builtin: 'done' },
+  { id: 'cmdNext',       label: 'Next',                    builtin: 'next' },
+  { id: 'cmdPause',      label: 'Pause',                   builtin: 'pause' },
+  { id: 'cmdPlay',       label: 'Play',                    builtin: 'play' },
+  { id: 'cmdReview',     label: 'Open recording review',   builtin: 'review, recording' },
+  { id: 'cmdReplay',     label: 'Replay recording',        builtin: 'replay' },
+  { id: 'cmdClose',      label: 'Close / end chunk',       builtin: 'close' },
+  { id: 'cmdRepCounter', label: 'Open rep counter',        builtin: 'reps, counter' },
+  { id: 'cmdInfo',       label: 'Open info',               builtin: 'info, information' },
+  { id: 'cmdSettings',   label: 'Open settings',           builtin: 'settings' },
+];
+
+function renderVcCmdList() {
+  const container = $('vc-cmd-list');
+  if (!container) return;
+  if (!settings.vcCommandOverrides) settings.vcCommandOverrides = {};
+  container.innerHTML = '';
+  for (const def of VC_CMD_DEFS) {
+    const ov      = settings.vcCommandOverrides[def.id] || {};
+    const enabled = ov.enabled !== false;
+    const trigger = ov.trigger || '';
+
+    const row = document.createElement('div');
+    row.className = 'vc-cmd-row';
+
+    // Toggle
+    const tog = document.createElement('label');
+    tog.className = 'tog-sw';
+    tog.innerHTML = `<input type="checkbox"${enabled ? ' checked' : ''}><div class="tog-track"></div><div class="tog-thumb"></div>`;
+    const chk = tog.querySelector('input');
+    chk.addEventListener('change', () => {
+      if (!settings.vcCommandOverrides[def.id]) settings.vcCommandOverrides[def.id] = {};
+      settings.vcCommandOverrides[def.id].enabled = chk.checked;
+      saveSettings();
+      labelEl.classList.toggle('vc-cmd-disabled', !chk.checked);
+      inp.disabled = !chk.checked;
+    });
+
+    // Label
+    const labelEl = document.createElement('div');
+    labelEl.className = 'vc-cmd-label' + (enabled ? '' : ' vc-cmd-disabled');
+    labelEl.textContent = def.label;
+
+    // Trigger input
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.className = 'vc-cmd-trigger';
+    inp.placeholder = def.builtin;
+    inp.value = trigger;
+    inp.disabled = !enabled;
+    inp.addEventListener('change', () => {
+      if (!settings.vcCommandOverrides[def.id]) settings.vcCommandOverrides[def.id] = {};
+      settings.vcCommandOverrides[def.id].trigger = inp.value.toLowerCase().trim();
+      saveSettings();
+    });
+
+    row.appendChild(tog);
+    row.appendChild(labelEl);
+    row.appendChild(inp);
+    container.appendChild(row);
+  }
 }
 
 ['add-vr-good-btn', 'add-vr-bad-btn'].forEach(btnId => {
@@ -543,10 +619,12 @@ if ($('diag-log-copy')) {
 }
 
 let _wasPaused = false;
+let _vcOverridesSnapshot = '{}';
 $('settings-btn').addEventListener('click', () => {
   _wasPaused = isPaused;
+  _vcOverridesSnapshot = JSON.stringify(settings.vcCommandOverrides || {});
   if (!isPaused && phase !== 'ready') { isPaused = true; render(); }
-  syncSettingsUI(); renderMsgList(); renderVrLists(); renderDiagLog(); renderBootStatus();
+  syncSettingsUI(); renderMsgList(); renderVrLists(); renderVcCmdList(); renderDiagLog(); renderBootStatus();
   renderSwStatus(); renderMemStatus();
   applyDebugReveal();
   const sbd = $('settings-build-date');
@@ -602,8 +680,8 @@ $('s-done-btn').addEventListener('click', () => {
   // triggers a recognizer rebuild). Then strip blank/whitespace-only entries
   // the user added but never filled in.
   const focused = document.activeElement;
-  if (focused && focused.classList && focused.classList.contains('msg-inp') &&
-      focused.closest && focused.closest('#vr-good-list, #vr-bad-list')) {
+  if (focused && focused.closest &&
+      focused.closest('#vr-good-list, #vr-bad-list, #vc-cmd-list')) {
     focused.blur();
   }
   let vrChanged = false;
@@ -619,6 +697,11 @@ $('s-done-btn').addEventListener('click', () => {
   if (vrChanged) {
     saveSettings();
     if (typeof vcOnSettingChange === 'function') vcOnSettingChange('vrGood');
+  }
+
+  if (JSON.stringify(settings.vcCommandOverrides || {}) !== _vcOverridesSnapshot) {
+    saveSettings();
+    if (typeof vcOnSettingChange === 'function') vcOnSettingChange('vcCommandOverrides');
   }
 
   $('settings-overlay').classList.remove('open');
