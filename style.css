@@ -987,6 +987,7 @@ flex-grow: 1;
 }
 .rs-row {
   display: flex; align-items: center; gap: 8px;
+  min-height: 52px;
 }
 /* Routine name button — pill, soft-dome (mirrors #start-btn-inner) */
 .rs-name-btn {
@@ -998,7 +999,7 @@ flex-grow: 1;
   box-shadow: -3px 4px 8px rgba(0,0,0,0.30);
   border-radius: 999px;
   color: #fff; font-size: clamp(14px, 4vw, 17px);
-  padding: clamp(12px, 3vw, 16px) clamp(18px, 4.5vw, 24px);
+  padding: 8px clamp(18px, 4.5vw, 24px);
   text-align: left; cursor: pointer;
   transition: background 0.15s, transform 0.1s; font-weight: 600;
   letter-spacing: 0.04em;
@@ -1039,7 +1040,7 @@ flex-grow: 1;
   box-shadow: -3px 4px 8px rgba(0,0,0,0.30);
   border-radius: 999px;
   color: #fff; font-size: clamp(14px, 4vw, 17px); font-weight: 600;
-  padding: clamp(12px, 3vw, 16px) clamp(18px, 4.5vw, 24px);
+  padding: 8px clamp(18px, 4.5vw, 24px);
   cursor: pointer; text-align: center;
   transition: background 0.15s, transform 0.1s; letter-spacing: 0.06em;
 }
