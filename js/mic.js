@@ -80,32 +80,6 @@ async function acquireMic() {
       const tracks = micStream.getAudioTracks();
       console.log('[mic] acquired tracks=' + tracks.length +
                   ' visible=' + (document.visibilityState === 'visible'));
-      // Log actual applied constraints so we can verify on-device whether
-      // autoGainControl/noiseSuppression/echoCancellation were honored.
-      // Readable in Settings → Diagnostics (diag log) on the real device.
-      if (tracks[0]) {
-        try {
-          const s = tracks[0].getSettings();
-          console.log('[mic] track settings agc=' + s.autoGainControl +
-                      ' ns=' + s.noiseSuppression +
-                      ' ec=' + s.echoCancellation +
-                      ' sr=' + s.sampleRate + ' ch=' + s.channelCount);
-        } catch(e) { console.log('[mic] getSettings() not supported'); }
-        // Second-pass applyConstraints — desktop only. On iOS/Safari we use
-        // audio:true intentionally (AGC provides level; NS never implemented).
-        // Applying {ec:false} here would disable the AGC coupling and undo it.
-        if (typeof IS_SAFARI === 'undefined' || !IS_SAFARI) {
-          tracks[0].applyConstraints({
-            echoCancellation: false, noiseSuppression: false, autoGainControl: false
-          }).then(() => {
-            try {
-              const s2 = tracks[0].getSettings();
-              console.log('[mic] post-apply agc=' + s2.autoGainControl +
-                          ' ns=' + s2.noiseSuppression + ' ec=' + s2.echoCancellation);
-            } catch(e) {}
-          }).catch(e => { console.log('[mic] applyConstraints rejected: ' + e.message); });
-        }
-      }
       // Listen to tracks[0] only, NOT forEach. Rationale: the persistent-mute
       // debounce timer (_micPersistentMuteTimer) is module-scoped — a multi-track
       // listener model would race against it (track A mute → timer armed; track B

@@ -116,11 +116,6 @@ const STEP_CFG = {
   // 15 min that's ~170 MB transient on iOS, alive only while the review
   // overlay is open. Past that we risk OOM under iOS PWA limits.
   maxRecDur: { min: 60,  max: 900,  step: 60, fmt: v => fmtDur(v), el: 'sv-maxrec' },
-  // recGain: 1–8× in 0.5 steps. Display as dB (0, +6, +12, +18 dB).
-  // Bypassed on iOS/Safari; shown grayed out there via CSS.
-  recGain:   { min: 1.0, max: 8.0,  step: 0.5,
-               fmt: v => v === 1.0 ? '0 dB' : '+' + Math.round(20 * Math.log10(v)) + ' dB',
-               el: 'sv-recgain' },
 };
 
 let _syncingUI = false;
@@ -158,11 +153,6 @@ function refreshCalc() {
   $('sv-break').textContent  = settings.breakDur + 's';
   $('sv-rest').textContent   = fmtDur(settings.restDur);
   $('sv-maxrec').textContent = fmtDur(settings.maxRecDur || 600);
-  const recGainCfg = STEP_CFG['recGain'];
-  $('sv-recgain').textContent = recGainCfg.fmt(settings.recGain != null ? settings.recGain : 4.0);
-  // Hide the boost row on iOS — AGC handles level there, boost is bypassed
-  const gainRow = $('s-rec-gain-row');
-  if (gainRow) gainRow.style.display = (typeof IS_SAFARI !== 'undefined' && IS_SAFARI) ? 'none' : '';
 }
 
 document.querySelectorAll('.step-btn').forEach(btn => {

@@ -26,22 +26,6 @@ let recCapTimer   = null;
 let recPendingTimer = null;
 let _recGeneration  = 0; // incremented on every startRecording; stale async paths bail
 
-// Software gain boost for the recording path on non-Safari browsers.
-// On iOS/Safari, AGC (via audio: true) handles level at the source with
-// better SNR than a post-capture boost — bypass the boost there.
-// On desktop Chrome/Firefox (AGC disabled), this compensates for the low
-// raw mic level at instrument distance. 4.0 ≈ +12 dB.
-// Exposed in Settings as "Recording Boost" so it can be tuned per setup.
-const REC_GAIN_DEFAULT = 4.0;
-const _isSafari = (typeof IS_SAFARI !== 'undefined' && IS_SAFARI);
-function _recGainValue() {
-  if (_isSafari) return 1.0; // AGC handles level on iOS/Safari; no boost needed
-  return (settings && settings.recGain != null) ? settings.recGain : REC_GAIN_DEFAULT;
-}
-let _recSrcNode  = null;
-let _recGainNode = null;
-let _recDestNode = null;
-
 // Delay between the round-start bell firing and the MediaRecorder actually
 // starting. The bell (playWorkStart) is A5 with a 2.5s exponential decay,
 // but at 500 ms its amplitude is already well below typical fiddle mic
@@ -135,39 +119,7 @@ function _scheduleBeginRec(gen) {
 function _beginRec() {
   if (!micStream) { console.warn('_beginRec: no micStream'); return; }
   try {
-    // Pick the best supported MIME type. Priority: Opus (best quality for
-    // speech/music, ~128kbps), then MP4/AAC (iOS native), then browser default.
-    // audio/ogg dropped — not supported on iOS or modern Chrome/Safari.
-    const mimeType = ['audio/webm;codecs=opus','audio/webm','audio/mp4','']
-      .find(m => m === '' || MediaRecorder.isTypeSupported(m)) || '';
-    const recOpts = { audioBitsPerSecond: 128000 };
-    if (mimeType) recOpts.mimeType = mimeType;
-
-    // Route through a gain node before recording on non-Safari platforms.
-    // On iOS/Safari: AGC (audio:true) handles level at the source — bypass.
-    // On desktop Chrome/Firefox: AGC is off, so boost compensates for quiet
-    // phone-mic-at-distance captures without amplifying the noise floor.
-    let recStream = micStream;
-    const gainVal = _recGainValue();
-    if (gainVal !== 1.0 && typeof audioCtx !== 'undefined' && audioCtx && audioCtx.state !== 'closed') {
-      try {
-        _recSrcNode  = audioCtx.createMediaStreamSource(micStream);
-        _recGainNode = audioCtx.createGain();
-        _recGainNode.gain.value = gainVal;
-        _recDestNode = audioCtx.createMediaStreamDestination();
-        _recSrcNode.connect(_recGainNode);
-        _recGainNode.connect(_recDestNode);
-        recStream = _recDestNode.stream;
-      } catch(e) {
-        console.warn('[rec] gain-boost setup failed, recording direct:', e);
-        _recSrcNode = _recGainNode = _recDestNode = null;
-      }
-    }
-
-    const mr = new MediaRecorder(recStream, recOpts);
-    console.log('[rec] started mime=' + (mr.mimeType || 'browser-default') +
-                ' bps=' + (mr.audioBitsPerSecond || 'unknown') +
-                ' gain=' + gainVal);
+    const mr = new MediaRecorder(micStream);
     mediaRecorder = mr;
     mr.ondataavailable = e => { if (e.data?.size > 0) recChunks.push(e.data); };
     mr.onstop = () => {
@@ -215,10 +167,6 @@ function stopRecording() {
     try { mediaRecorder.stop(); } catch(e) {}
   }
   mediaRecorder = null;
-  // Disconnect the gain-boost chain so the nodes can be GC'd.
-  if (_recSrcNode)  { try { _recSrcNode.disconnect(); } catch(e) {} _recSrcNode = null; }
-  _recGainNode = null;
-  _recDestNode = null;
   // Keep micStream alive across phases on all browsers.
   // Previously we stopped tracks on Safari to clear the mic indicator, but
   // iOS can re-prompt for mic permission if the stream is released — even
