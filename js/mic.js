@@ -55,7 +55,14 @@ async function acquireMic() {
       if (navigator.audioSession) {
         try { navigator.audioSession.type = 'play-and-record'; } catch(e){}
       }
-      micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      // Disable browser voice-processing so instrument audio isn't mangled.
+      // echoCancellation, noiseSuppression, and autoGainControl all default ON
+      // and are designed for speech — they compress and blip-distort sustained
+      // instrument tones. Equivalent to Zoom's "Original Sound" mode.
+      micStream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
+        video: false
+      });
       const tracks = micStream.getAudioTracks();
       console.log('[mic] acquired tracks=' + tracks.length +
                   ' visible=' + (document.visibilityState === 'visible'));
