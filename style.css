@@ -714,7 +714,7 @@ transition: background 0.12s, color 0.12s;
   display: flex; align-items: center; gap: 10px;
   flex-shrink: 0;
 }
-.is-safari #rev-vol-wrap { display: none; }
+/* Review volume works via Web Audio GainNode on all platforms including iOS */
 #rev-vol-icon { opacity: 0.50; flex-shrink: 0; }
 #rev-vol {
   -webkit-appearance: none; appearance: none;

@@ -5,7 +5,7 @@
 // =================================================
 // Release mic tracks between phases on Safari/iOS (so the mic indicator turns off).
 // On Chrome, keep the stream alive to avoid re-prompting each work phase.
-const BUILD_DATE = '2026-06-01 17:40';   // stamped automatically by deploy.sh — do not edit manually
+const BUILD_DATE = '2026-06-01 18:39';   // stamped automatically by deploy.sh — do not edit manually
 const IS_SAFARI  = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
 const DEFAULTS = {
@@ -21,7 +21,7 @@ const DEFAULTS = {
   maxRecDur:             600,
   breaksCountAsPractice: true,
   notifyVol:             0.35,
-  reviewVol:             0.8,
+  reviewVol:             1.0,
   recording:             true,
   autoAdvance:           false,
   voiceCommands:         true,    // app-wide voice control when model is ready
