@@ -26,6 +26,16 @@ let recCapTimer   = null;
 let recPendingTimer = null;
 let _recGeneration  = 0; // incremented on every startRecording; stale async paths bail
 
+// Software gain boost for the recording path. Without AGC the iPhone mic at
+// instrument distance (~2-3 ft) produces a very low-level signal. This boost
+// is applied in the Web Audio graph before MediaRecorder — it does NOT affect
+// the voice-recognition pipeline, which reads micStream directly.
+// 4.0 ≈ +12 dB. Tune if recordings are still too quiet or start clipping.
+const REC_GAIN = 4.0;
+let _recSrcNode  = null;
+let _recGainNode = null;
+let _recDestNode = null;
+
 // Delay between the round-start bell firing and the MediaRecorder actually
 // starting. The bell (playWorkStart) is A5 with a 2.5s exponential decay,
 // but at 500 ms its amplitude is already well below typical fiddle mic
@@ -124,13 +134,31 @@ function _beginRec() {
     // audio/ogg dropped — not supported on iOS or modern Chrome/Safari.
     const mimeType = ['audio/webm;codecs=opus','audio/webm','audio/mp4','']
       .find(m => m === '' || MediaRecorder.isTypeSupported(m)) || '';
-    // 128 kbps gives Opus enough headroom for fiddle harmonics. AAC on iOS
-    // defaults to ~64 kbps which can produce pre-echo artifacts on bow attacks.
     const recOpts = { audioBitsPerSecond: 128000 };
     if (mimeType) recOpts.mimeType = mimeType;
-    const mr = new MediaRecorder(micStream, recOpts);
+
+    // Route through a gain node before recording. Boosts the low-level signal
+    // from a phone mic at instrument distance without affecting voice recognition.
+    let recStream = micStream;
+    if (typeof audioCtx !== 'undefined' && audioCtx && audioCtx.state !== 'closed') {
+      try {
+        _recSrcNode  = audioCtx.createMediaStreamSource(micStream);
+        _recGainNode = audioCtx.createGain();
+        _recGainNode.gain.value = REC_GAIN;
+        _recDestNode = audioCtx.createMediaStreamDestination();
+        _recSrcNode.connect(_recGainNode);
+        _recGainNode.connect(_recDestNode);
+        recStream = _recDestNode.stream;
+      } catch(e) {
+        console.warn('[rec] gain-boost setup failed, recording direct:', e);
+        _recSrcNode = _recGainNode = _recDestNode = null;
+      }
+    }
+
+    const mr = new MediaRecorder(recStream, recOpts);
     console.log('[rec] started mime=' + (mr.mimeType || 'browser-default') +
-                ' bps=' + (mr.audioBitsPerSecond || 'unknown'));
+                ' bps=' + (mr.audioBitsPerSecond || 'unknown') +
+                ' gain=' + (_recGainNode ? REC_GAIN : '1 (bypass)'));
     mediaRecorder = mr;
     mr.ondataavailable = e => { if (e.data?.size > 0) recChunks.push(e.data); };
     mr.onstop = () => {
@@ -178,6 +206,10 @@ function stopRecording() {
     try { mediaRecorder.stop(); } catch(e) {}
   }
   mediaRecorder = null;
+  // Disconnect the gain-boost chain so the nodes can be GC'd.
+  if (_recSrcNode)  { try { _recSrcNode.disconnect(); } catch(e) {} _recSrcNode = null; }
+  _recGainNode = null;
+  _recDestNode = null;
   // Keep micStream alive across phases on all browsers.
   // Previously we stopped tracks on Safari to clear the mic indicator, but
   // iOS can re-prompt for mic permission if the stream is released — even

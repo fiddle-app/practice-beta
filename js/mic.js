@@ -77,6 +77,17 @@ async function acquireMic() {
                       ' ec=' + s.echoCancellation +
                       ' sr=' + s.sampleRate + ' ch=' + s.channelCount);
         } catch(e) { console.log('[mic] getSettings() not supported'); }
+        // Second-pass applyConstraints — some iOS versions ignore the initial
+        // getUserMedia constraints but honor a post-acquisition apply.
+        tracks[0].applyConstraints({
+          echoCancellation: false, noiseSuppression: false, autoGainControl: false
+        }).then(() => {
+          try {
+            const s2 = tracks[0].getSettings();
+            console.log('[mic] post-apply agc=' + s2.autoGainControl +
+                        ' ns=' + s2.noiseSuppression + ' ec=' + s2.echoCancellation);
+          } catch(e) {}
+        }).catch(e => { console.log('[mic] applyConstraints rejected: ' + e.message); });
       }
       // Listen to tracks[0] only, NOT forEach. Rationale: the persistent-mute
       // debounce timer (_micPersistentMuteTimer) is module-scoped — a multi-track
