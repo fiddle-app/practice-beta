@@ -119,10 +119,18 @@ function _scheduleBeginRec(gen) {
 function _beginRec() {
   if (!micStream) { console.warn('_beginRec: no micStream'); return; }
   try {
-    // Pick a supported MIME type
-    const mimeType = ['audio/webm;codecs=opus','audio/webm','audio/ogg','']
+    // Pick the best supported MIME type. Priority: Opus (best quality for
+    // speech/music, ~128kbps), then MP4/AAC (iOS native), then browser default.
+    // audio/ogg dropped — not supported on iOS or modern Chrome/Safari.
+    const mimeType = ['audio/webm;codecs=opus','audio/webm','audio/mp4','']
       .find(m => m === '' || MediaRecorder.isTypeSupported(m)) || '';
-    const mr = new MediaRecorder(micStream, mimeType ? { mimeType } : undefined);
+    // 128 kbps gives Opus enough headroom for fiddle harmonics. AAC on iOS
+    // defaults to ~64 kbps which can produce pre-echo artifacts on bow attacks.
+    const recOpts = { audioBitsPerSecond: 128000 };
+    if (mimeType) recOpts.mimeType = mimeType;
+    const mr = new MediaRecorder(micStream, recOpts);
+    console.log('[rec] started mime=' + (mr.mimeType || 'browser-default') +
+                ' bps=' + (mr.audioBitsPerSecond || 'unknown'));
     mediaRecorder = mr;
     mr.ondataavailable = e => { if (e.data?.size > 0) recChunks.push(e.data); };
     mr.onstop = () => {
