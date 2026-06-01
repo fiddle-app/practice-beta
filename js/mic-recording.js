@@ -26,12 +26,18 @@ let recCapTimer   = null;
 let recPendingTimer = null;
 let _recGeneration  = 0; // incremented on every startRecording; stale async paths bail
 
-// Software gain boost for the recording path. Without AGC the iPhone mic at
-// instrument distance (~2-3 ft) produces a very low-level signal. This boost
-// is applied in the Web Audio graph before MediaRecorder — it does NOT affect
-// the voice-recognition pipeline, which reads micStream directly.
-// 4.0 ≈ +12 dB. Tune if recordings are still too quiet or start clipping.
-const REC_GAIN = 4.0;
+// Software gain boost for the recording path on non-Safari browsers.
+// On iOS/Safari, AGC (via audio: true) handles level at the source with
+// better SNR than a post-capture boost — bypass the boost there.
+// On desktop Chrome/Firefox (AGC disabled), this compensates for the low
+// raw mic level at instrument distance. 4.0 ≈ +12 dB.
+// Exposed in Settings as "Recording Boost" so it can be tuned per setup.
+const REC_GAIN_DEFAULT = 4.0;
+const _isSafari = (typeof IS_SAFARI !== 'undefined' && IS_SAFARI);
+function _recGainValue() {
+  if (_isSafari) return 1.0; // AGC handles level on iOS/Safari; no boost needed
+  return (settings && settings.recGain != null) ? settings.recGain : REC_GAIN_DEFAULT;
+}
 let _recSrcNode  = null;
 let _recGainNode = null;
 let _recDestNode = null;
@@ -137,14 +143,17 @@ function _beginRec() {
     const recOpts = { audioBitsPerSecond: 128000 };
     if (mimeType) recOpts.mimeType = mimeType;
 
-    // Route through a gain node before recording. Boosts the low-level signal
-    // from a phone mic at instrument distance without affecting voice recognition.
+    // Route through a gain node before recording on non-Safari platforms.
+    // On iOS/Safari: AGC (audio:true) handles level at the source — bypass.
+    // On desktop Chrome/Firefox: AGC is off, so boost compensates for quiet
+    // phone-mic-at-distance captures without amplifying the noise floor.
     let recStream = micStream;
-    if (typeof audioCtx !== 'undefined' && audioCtx && audioCtx.state !== 'closed') {
+    const gainVal = _recGainValue();
+    if (gainVal !== 1.0 && typeof audioCtx !== 'undefined' && audioCtx && audioCtx.state !== 'closed') {
       try {
         _recSrcNode  = audioCtx.createMediaStreamSource(micStream);
         _recGainNode = audioCtx.createGain();
-        _recGainNode.gain.value = REC_GAIN;
+        _recGainNode.gain.value = gainVal;
         _recDestNode = audioCtx.createMediaStreamDestination();
         _recSrcNode.connect(_recGainNode);
         _recGainNode.connect(_recDestNode);
@@ -158,7 +167,7 @@ function _beginRec() {
     const mr = new MediaRecorder(recStream, recOpts);
     console.log('[rec] started mime=' + (mr.mimeType || 'browser-default') +
                 ' bps=' + (mr.audioBitsPerSecond || 'unknown') +
-                ' gain=' + (_recGainNode ? REC_GAIN : '1 (bypass)'));
+                ' gain=' + gainVal);
     mediaRecorder = mr;
     mr.ondataavailable = e => { if (e.data?.size > 0) recChunks.push(e.data); };
     mr.onstop = () => {

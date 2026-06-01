@@ -11,8 +11,8 @@
 <meta name="theme-color" id="meta-theme" content="#0d0d0d">
 <!-- Stamped by scripts/deploy.sh — used by the inline version-coherence
      check below to detect a hybrid-cache state at launch. Source ships
-     with 2026-06-01 17:17 as the literal placeholder. -->
-<meta name="microbreaker-build" content="2026-06-01 17:17">
+     with 2026-06-01 17:31 as the literal placeholder. -->
+<meta name="microbreaker-build" content="2026-06-01 17:31">
 <!-- PWA home-screen icon. MUST be a real PNG file reference — iOS Safari
      "Add to Home Screen" does not reliably accept data: URLs or JS-generated
      canvas icons. If you change this, test on iPad Safari: Share → Add to
@@ -228,7 +228,7 @@
   var current = (meta && meta.content) || null;
   // Treat the unstamped placeholder as no-info (running source uncompiled).
   // The placeholder string is built from string concatenation so the
-  // deploy.sh sed pass on this file (which replaces 2026-06-01 17:17 with
+  // deploy.sh sed pass on this file (which replaces 2026-06-01 17:31 with
   // the actual build) cannot match it as a contiguous substring. If we
   // wrote the literal here, sed would replace this check itself, turning
   // it into "if current === <build>" — i.e., treating every clean deploy
@@ -800,6 +800,7 @@ if (window._mbShowUpgradeModal) window._mbShowUpgradeModal(window._mbUpgrade);
   <div class="s-row"><div class="s-label">Micro-break</div><div class="s-stepper"><button class="step-btn" data-field="breakDur" data-dir="-1">−</button><div class="s-val" id="sv-break">15s</div><button class="step-btn" data-field="breakDur" data-dir="1">+</button></div></div>
   <div class="s-row"><div class="s-label">Rest</div><div class="s-stepper"><button class="step-btn" data-field="restDur" data-dir="-1">−</button><div class="s-val" id="sv-rest">2:00</div><button class="step-btn" data-field="restDur" data-dir="1">+</button></div></div>
   <div class="s-row"><div class="s-label">Maximum Recording</div><div class="s-stepper"><button class="step-btn" data-field="maxRecDur" data-dir="-1">−</button><div class="s-val" id="sv-maxrec">10:00</div><button class="step-btn" data-field="maxRecDur" data-dir="1">+</button></div></div>
+  <div class="s-row" id="s-rec-gain-row"><div class="s-label">Recording Boost<div class="s-sub">Desktop only — iOS uses hardware gain</div></div><div class="s-stepper"><button class="step-btn" data-field="recGain" data-dir="-1">−</button><div class="s-val" id="sv-recgain">+12dB</div><button class="step-btn" data-field="recGain" data-dir="1">+</button></div></div>
   <div class="s-sec">Behavior</div>
   <div class="tog-row"><div class="tog-label">Practice Routines</div><label class="tog-sw"><input type="checkbox" id="s-routines"><div class="tog-track"></div><div class="tog-thumb"></div></label></div>
   <div class="s-sub" style="padding: 0 0 6px;">Show routine selector after hello screen. Manage routines from the selector.</div>

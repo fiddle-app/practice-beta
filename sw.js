@@ -1,9 +1,9 @@
 'use strict';
 
 // Service worker for Practice Buddy (microbreaker)
-// 2026-06-01 17:17 is replaced by deploy.sh at deploy time — do NOT edit manually.
+// 2026-06-01 17:31 is replaced by deploy.sh at deploy time — do NOT edit manually.
 
-const CACHE_VER    = '2026-06-01 17:17';
+const CACHE_VER    = '2026-06-01 17:31';
 const STATIC_CACHE = 'microbreaker-static-' + CACHE_VER;
 const FONT_CACHE   = 'microbreaker-fonts';
 

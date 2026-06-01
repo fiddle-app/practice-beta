@@ -5,7 +5,7 @@
 // =================================================
 // Release mic tracks between phases on Safari/iOS (so the mic indicator turns off).
 // On Chrome, keep the stream alive to avoid re-prompting each work phase.
-const BUILD_DATE = '2026-06-01 17:17';   // stamped automatically by deploy.sh — do not edit manually
+const BUILD_DATE = '2026-06-01 17:31';   // stamped automatically by deploy.sh — do not edit manually
 const IS_SAFARI  = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
 const DEFAULTS = {
@@ -41,7 +41,10 @@ const DEFAULTS = {
   // trigger is comma-separated words/phrases replacing the builtin list; empty = use builtin.
   // Missing key = enabled with builtin triggers.
   vcCommandOverrides:    {},
-  routinesEnabled:       false
+  routinesEnabled:       false,
+  // Desktop-only recording gain multiplier (1–8×). Bypassed on iOS/Safari
+  // where AGC handles level at the source. Default 4.0 = +12 dB.
+  recGain:               4.0
 };
 
 let settings = (() => {

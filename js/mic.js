@@ -55,12 +55,26 @@ async function acquireMic() {
       if (navigator.audioSession) {
         try { navigator.audioSession.type = 'play-and-record'; } catch(e){}
       }
-      // Disable browser voice-processing so instrument audio isn't mangled.
-      // echoCancellation, noiseSuppression, and autoGainControl all default ON
-      // and are designed for speech — they compress and blip-distort sustained
-      // instrument tones. Equivalent to Zoom's "Original Sound" mode.
+      // On iOS/Safari: use browser defaults (audio: true). iOS never implements
+      // noiseSuppression regardless of the constraint flag, so NS artifacts are
+      // not a concern. AGC remains active and provides the level boost needed for
+      // a phone mic placed at instrument distance — without it the recording is
+      // too quiet. echoCancellation in a solo practice room (no speaker output
+      // feeding back) causes no audible harm.
+      //
+      // On desktop Chrome/Firefox: disable all three voice-processing flags.
+      // Chrome and Firefox implement real NS which treats sustained instrument
+      // harmonics as noise and creates spectral artifacts. Their AGC also causes
+      // pump distortion on bow attacks. Equivalent to Zoom's "Original Sound."
+      // A software gain boost in mic-recording.js compensates for the missing AGC.
+      //
+      // IS_SAFARI is set in settings.js (covers iOS Safari + macOS Safari +
+      // Capacitor WKWebView — all WebKit-based surfaces).
+      const _audioConstraints = (typeof IS_SAFARI !== 'undefined' && IS_SAFARI)
+        ? true
+        : { echoCancellation: false, noiseSuppression: false, autoGainControl: false };
       micStream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
+        audio: _audioConstraints,
         video: false
       });
       const tracks = micStream.getAudioTracks();
