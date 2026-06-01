@@ -148,9 +148,8 @@ function openRoutineEditor(routine) {
   $('routine-editor-status').className   = 're-status';
   _validateEditor();
 
-  // Show format guide for new routines; collapse it for edits
   const guidance = $('re-guidance-details');
-  if (guidance) guidance.open = !routine;
+  if (guidance) guidance.open = true;
 
   $('routine-editor-overlay').classList.add('open');
   textarea.focus();
