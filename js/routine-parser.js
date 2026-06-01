@@ -73,10 +73,8 @@ function parseRoutineText(text) {
         routine.order = 'sequential';
       } else if (val === 'random') {
         routine.order = 'random';
-      } else if (val === 'random with no repeats') {
-        routine.order = 'random-no-repeat';
       } else {
-        errors.push(`Line ${lineNum}: Did not recognize Order value "${line.slice(6).trim()}". Use Sequential, Random, or "Random with no repeats".`);
+        errors.push(`Line ${lineNum}: Did not recognize Order value "${line.slice(6).trim()}". Use Sequential or Random.`);
       }
       continue;
     }

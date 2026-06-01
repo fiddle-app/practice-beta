@@ -11,8 +11,8 @@
 <meta name="theme-color" id="meta-theme" content="#0d0d0d">
 <!-- Stamped by scripts/deploy.sh — used by the inline version-coherence
      check below to detect a hybrid-cache state at launch. Source ships
-     with 2026-06-01 07:42 as the literal placeholder. -->
-<meta name="microbreaker-build" content="2026-06-01 07:42">
+     with 2026-06-01 08:28 as the literal placeholder. -->
+<meta name="microbreaker-build" content="2026-06-01 08:28">
 <!-- PWA home-screen icon. MUST be a real PNG file reference — iOS Safari
      "Add to Home Screen" does not reliably accept data: URLs or JS-generated
      canvas icons. If you change this, test on iPad Safari: Share → Add to
@@ -228,7 +228,7 @@
   var current = (meta && meta.content) || null;
   // Treat the unstamped placeholder as no-info (running source uncompiled).
   // The placeholder string is built from string concatenation so the
-  // deploy.sh sed pass on this file (which replaces 2026-06-01 07:42 with
+  // deploy.sh sed pass on this file (which replaces 2026-06-01 08:28 with
   // the actual build) cannot match it as a contiguous substring. If we
   // wrote the literal here, sed would replace this check itself, turning
   // it into "if current === <build>" — i.e., treating every clean deploy
@@ -1009,13 +1009,14 @@ if (window._mbShowUpgradeModal) window._mbShowUpgradeModal(window._mbUpgrade);
       <pre class="re-guidance-text">Fields in [] are optional.
 
 Name: {Name of the routine}
-[Order: {Sequential | Random | Random with no repeats}]
+[Order: {Sequential | Random}]
 {chunkTime}[, {practiceTime}[, {microbreakTime}]] {subject}
    [; {goal}][; {strategy}][; {retrospective question}]
 [{restTime} Rest]
 
 Times: M:SS (e.g. 4:00), :SS (e.g. :30), or minutes (e.g. 4)
 "Rest" is a reserved word — do not use it as a subject.
+Random plays each chunk once in shuffled order, then ends.
 
 Example:
 Name: Daily Drills

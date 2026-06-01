@@ -14,12 +14,13 @@ const EDITOR_GUIDANCE =
 `Fields in [] are optional.
 
 Name: {Name of the routine}
-[Order: {Sequential | Random | Random with no repeats}]
+[Order: {Sequential | Random}]
 {chunkTime}[, {practiceTime}[, {microbreakTime}]] {subject}[; {goal}][; {strategy}][; {retrospective question}]
 [{restTime} Rest]
 
 Times: M:SS (e.g. 4:00), :SS (e.g. :30), or minutes (e.g. 4)
 "Rest" is a reserved word — do not use it as a subject.
+Random plays each chunk once in shuffled order, then ends.
 
 Example:
 Name: Daily Drills
@@ -197,7 +198,7 @@ function _routineToText(routine) {
   const lines = [];
   lines.push('Name: ' + routine.name);
 
-  const orderMap = { sequential: 'Sequential', random: 'Random', 'random-no-repeat': 'Random with no repeats' };
+  const orderMap = { sequential: 'Sequential', random: 'Random' };
   if (routine.order && routine.order !== 'sequential') {
     lines.push('Order: ' + (orderMap[routine.order] || 'Sequential'));
   }

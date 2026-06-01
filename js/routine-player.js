@@ -37,8 +37,8 @@ function clearActiveRoutine() {
 
 function _buildSequence(routine) {
   const indices = routine.chunks.map((_, i) => i);
-  if (routine.order === 'sequential') return indices;
-  // Fisher-Yates shuffle
+  if (routine.order !== 'random') return indices;
+  // Fisher-Yates shuffle — each chunk plays exactly once, in random order
   for (let i = indices.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [indices[i], indices[j]] = [indices[j], indices[i]];
