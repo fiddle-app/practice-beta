@@ -12,7 +12,7 @@
 //   {chunkTime}[, {practiceTime}[, {microbreakTime}]] {subject}[; {goal}][; {strategy}][; {retrospectiveQ}]
 //   [{restTime} Rest]
 //
-// Times: M:SS  or  :SS  or  M  (plain integer = minutes)
+// Times: M:SS  or  :SS  or  M  (integer minutes)  or  decimal (e.g. 1.5 = 1:30)
 // "Rest" is a reserved subject word that sets the rest duration for subsequent chunks.
 // Blank lines and lines starting with # are ignored.
 
@@ -26,10 +26,10 @@ function parseTime(token) {
     const s = parseInt(colonMatch[2], 10);
     return m * 60 + s;
   }
-  // Plain integer = minutes
-  const intMatch = token.match(/^(\d+)$/);
-  if (intMatch) {
-    return parseInt(intMatch[1], 10) * 60;
+  // Integer or decimal = minutes (e.g. 4 = 240s, 1.5 = 90s)
+  const numMatch = token.match(/^(\d+(?:\.\d+)?)$/);
+  if (numMatch) {
+    return Math.round(parseFloat(numMatch[1]) * 60);
   }
   return null;
 }
@@ -94,8 +94,8 @@ function parseRoutineText(text) {
     const retrospectiveQ = parts[3] || '';
 
     // Extract leading time tokens from timeSub
-    // Time tokens: M:SS, :SS, or standalone integer not part of subject text
-    const timePattern = /^((?:\d*:\d+|\d+)(?:\s*,\s*(?:\d*:\d+|\d+))*)\s+(.+)$/;
+    // Time tokens: M:SS, :SS, integer, or decimal (e.g. 1.5 = 1:30)
+    const timePattern = /^((?:\d*:\d+|\d+(?:\.\d+)?)(?:\s*,\s*(?:\d*:\d+|\d+(?:\.\d+)?))*)\s+(.+)$/;
     const match = timeSub.match(timePattern);
 
     if (!match) {

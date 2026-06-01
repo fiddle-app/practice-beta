@@ -65,18 +65,23 @@ document.addEventListener('pointerdown', () => { wlOnActivity('pointerdown'); },
 
 // Safari bfcache restore: page may be brought back with stale DOM state
 // (transient overlays left open from last session). Force-close them on
-// restore. NOTE: hello-overlay and welcome-overlay are deliberately NOT
-// in this list — they are owned by openLaunchGate, which decides on every
-// page load whether to show Hello (or Welcome). Including Hello here would
-// race with openLaunchGate on a fresh load: Hello opens during
-// DOMContentLoaded, then pageshow rips it back closed before the user sees it.
-window.addEventListener('pageshow', () => {
+// restore. NOTE: hello-overlay, welcome-overlay, and routine-selector-overlay
+// are deliberately NOT closed unconditionally here — they are owned by
+// openLaunchGate, which decides on every page load whether to open them.
+// Closing them here would race: openLaunchGate opens them during
+// DOMContentLoaded, then pageshow rips them closed before the user sees them.
+// On a bfcache restore (e.persisted=true) we DO force-close them, since the
+// page state is being resurrected and the gate will decide again whether to
+// re-open them.
+window.addEventListener('pageshow', (e) => {
   $('review-overlay').classList.remove('open');
   $('settings-overlay').classList.remove('open');
   $('info-overlay').classList.remove('open');
   $('reset-overlay').classList.remove('open');
-  $('routine-selector-overlay').classList.remove('open');
-  $('routine-editor-overlay').classList.remove('open');
+  if (e.persisted) {
+    $('routine-selector-overlay').classList.remove('open');
+    $('routine-editor-overlay').classList.remove('open');
+  }
   // Note: audio nuke on pageshow is handled by audio-ctx.js
 });
 
@@ -1367,10 +1372,9 @@ function openLaunchGate() {
   } else if (settings.voiceCommands) {
     openHello();
   } else {
-    // No gate. App boots straight to Ready. First user interaction
-    // (e.g. Start Practice tap) acquires the mic if recording is on
-    // and unlocks the AudioContext for chimes.
+    // No gate. App boots straight to Ready (or Plan if routines enabled).
     _launchGateCleared = true;
+    if (settings.routinesEnabled && typeof openRoutineSelector === 'function') openRoutineSelector();
   }
 }
 document.addEventListener('DOMContentLoaded', openLaunchGate);

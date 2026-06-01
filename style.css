@@ -952,40 +952,68 @@ flex-grow: 1;
 }
 
 /* ══════════════════════════════════════
-   ROUTINE SELECTOR OVERLAY
+   ROUTINE SELECTOR / PLAN PHASE SCREEN
 ══════════════════════════════════════ */
 #routine-selector-overlay {
   display: none; position: fixed; inset: 0; z-index: 500;
   background: var(--color-bg-surface);
-  flex-direction: column; align-items: center; justify-content: center;
-  padding: calc(var(--safe-top) + 20px) 20px calc(var(--safe-bot) + 20px);
+  background-image: radial-gradient(ellipse at center, transparent 25%, rgba(0,0,0,0.58) 100%);
+  flex-direction: column; align-items: center;
+  padding: calc(var(--safe-top) + 10px) 22px calc(var(--safe-bot) + 20px);
   font-family: var(--font); color: #fff;
+  overflow: hidden;
 }
 #routine-selector-overlay.open { display: flex; }
+/* Phase label — mirrors #phase-label style */
+.rs-phase-label {
+  font-size: clamp(26px, 8vw, 36px); font-weight: 400; letter-spacing: 0.22em;
+  text-transform: uppercase; opacity: 0.52;
+  min-height: clamp(30px, 9vw, 42px); text-align: center;
+  width: 100%; flex-shrink: 0;
+}
+/* Question — mirrors #rest-questions p style */
+.rs-question {
+  font-size: clamp(16px, 4.5vw, 22px); font-weight: 300; color: var(--color-warm-text);
+  text-align: center; letter-spacing: 0.02em; line-height: 1.45;
+  margin: 10px 0 18px; flex-shrink: 0;
+}
+/* Scrollable button list */
 #routine-selector-content {
   width: 100%; max-width: 420px;
+  flex: 1; min-height: 0;
+  overflow-y: auto; -webkit-overflow-scrolling: touch;
   display: flex; flex-direction: column; gap: 10px;
-}
-.rs-heading {
-  font-size: clamp(17px, 5vw, 22px); font-weight: 600;
-  text-align: center; margin: 0 0 8px;
+  padding-bottom: 8px;
 }
 .rs-row {
   display: flex; align-items: center; gap: 8px;
 }
+/* Routine name button — pill, soft-dome (mirrors #start-btn-inner) */
 .rs-name-btn {
   flex: 1; -webkit-appearance: none; font-family: 'Nunito', sans-serif;
-  background: rgba(255,255,255,0.10); border: 1px solid rgba(255,255,255,0.18);
-  border-radius: 12px; color: #fff; font-size: clamp(14px, 4vw, 17px);
-  padding: 14px 16px; text-align: left; cursor: pointer;
-  transition: background 0.15s; font-weight: 600;
+  background:
+    radial-gradient(circle at 72% 25%, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 50%),
+    rgba(255,255,255,0.11);
+  border: 1.5px solid transparent;
+  box-shadow: -3px 4px 8px rgba(0,0,0,0.30);
+  border-radius: 999px;
+  color: #fff; font-size: clamp(14px, 4vw, 17px);
+  padding: clamp(12px, 3vw, 16px) clamp(18px, 4.5vw, 24px);
+  text-align: left; cursor: pointer;
+  transition: background 0.15s, transform 0.1s; font-weight: 600;
+  letter-spacing: 0.04em;
 }
-.rs-name-btn:active { background: rgba(255,255,255,0.20); }
+.rs-name-btn:active {
+  background:
+    radial-gradient(circle at 72% 25%, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0) 50%),
+    rgba(255,255,255,0.20);
+  transform: scale(0.97);
+}
 .rs-icon-btn {
   -webkit-appearance: none; background: none; border: none;
   color: rgba(255,255,255,0.50); cursor: pointer; padding: 8px;
   display: flex; align-items: center; justify-content: center;
-  transition: color 0.15s;
+  transition: color 0.15s; flex-shrink: 0;
 }
 .rs-icon-btn:active { color: rgba(255,255,255,0.9); }
 .rs-delete-btn { color: rgba(255,100,100,0.60); }
@@ -1001,23 +1029,53 @@ flex-grow: 1;
   background: rgba(255,255,255,0.10); border: none; border-radius: 8px;
   color: #fff; font-size: 13px; padding: 8px 14px; cursor: pointer;
 }
-.rs-section-divider {
-  height: 1px; background: rgba(255,255,255,0.12); margin: 4px 0;
-}
+/* Free Practice — green pill, soft-dome */
 .rs-free-btn {
   -webkit-appearance: none; font-family: var(--font);
-  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18);
-  border-radius: 12px; color: rgba(255,255,255,0.70); font-size: clamp(14px, 4vw, 17px);
-  padding: 14px 16px; cursor: pointer; text-align: center; transition: background 0.15s;
+  background:
+    radial-gradient(circle at 72% 25%, rgba(255,255,255,0.20) 0%, rgba(255,255,255,0) 50%),
+    linear-gradient(180deg, #2d7a3a 0%, #1a5c26 100%);
+  border: 1.5px solid transparent;
+  box-shadow: -3px 4px 8px rgba(0,0,0,0.30);
+  border-radius: 999px;
+  color: #fff; font-size: clamp(14px, 4vw, 17px); font-weight: 600;
+  padding: clamp(12px, 3vw, 16px) clamp(18px, 4.5vw, 24px);
+  cursor: pointer; text-align: center;
+  transition: background 0.15s, transform 0.1s; letter-spacing: 0.06em;
 }
-.rs-free-btn:active { background: rgba(255,255,255,0.18); }
+.rs-free-btn:active {
+  background:
+    radial-gradient(circle at 72% 25%, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0) 50%),
+    linear-gradient(180deg, #1a5c26 0%, #0f3d18 100%);
+  transform: scale(0.97);
+}
+/* New Routine — bigger, higher contrast, green + */
 .rs-new-btn {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
   -webkit-appearance: none; font-family: var(--font);
   background: none; border: none;
-  color: rgba(255,255,255,0.45); font-size: clamp(13px, 3.5vw, 15px);
-  padding: 10px; cursor: pointer; text-align: center;
-  text-decoration: underline; text-decoration-color: rgba(255,255,255,0.20);
+  color: rgba(255,255,255,0.72); font-size: clamp(15px, 4.2vw, 18px);
+  font-weight: 500; padding: 12px; cursor: pointer; text-align: center;
+  transition: color 0.15s;
 }
+.rs-new-btn:active { color: rgba(255,255,255,0.95); }
+.rs-new-plus {
+  font-size: clamp(22px, 6vw, 28px); font-weight: 700; line-height: 1;
+  color: var(--color-green-light);
+}
+/* Plan-back button — fixed upper-left, shown on ready when routines enabled */
+#plan-back-btn {
+  position: fixed;
+  top: calc(var(--safe-top) + 10px);
+  left: calc(var(--safe-l) + 12px);
+  z-index: 100;
+  background: none; border: none;
+  color: rgba(255,255,255,0.55); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  padding: 8px; -webkit-appearance: none;
+  transition: color 0.15s, opacity 0.15s;
+}
+#plan-back-btn:active { color: rgba(255,255,255,0.95); }
 
 /* ══════════════════════════════════════
    ROUTINE EDITOR OVERLAY
@@ -1038,47 +1096,13 @@ flex-grow: 1;
   font-size: clamp(17px, 5vw, 22px); font-weight: 600;
   text-align: center; margin: 0 0 4px;
 }
-.re-textarea {
-  width: 100%; box-sizing: border-box; min-height: 200px;
-  background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.20);
-  border-radius: 10px; color: #fff; font-family: 'Nunito', sans-serif;
-  font-size: 15px; padding: 12px; resize: vertical;
-  -webkit-appearance: none; outline: none;
-  line-height: 1.6;
-}
-.re-textarea:focus { border-color: rgba(255,255,255,0.45); }
-.re-btn-row { display: flex; gap: 8px; }
-.re-clipboard-btn {
-  -webkit-appearance: none; font-family: var(--font);
-  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18);
-  border-radius: 8px; color: #fff; font-size: 13px; padding: 8px 16px;
-  cursor: pointer; min-width: 72px;
-}
-.re-clipboard-btn:active { background: rgba(255,255,255,0.18); }
-.re-status { min-height: 20px; font-size: 13px; font-weight: 400; }
-.re-error { color: #ff6b6b; }
-.re-ok    { color: #6bff8e; }
-.re-action-row { display: flex; gap: 10px; justify-content: flex-end; }
-.re-cancel-btn {
-  -webkit-appearance: none; font-family: var(--font);
-  background: none; border: none; color: rgba(255,255,255,0.50);
-  font-size: clamp(14px, 4vw, 17px); padding: 12px 20px; cursor: pointer;
-  text-decoration: underline;
-}
-.re-done-btn {
-  -webkit-appearance: none; font-family: var(--font);
-  background: rgba(255,255,255,0.15); border: none; border-radius: 12px;
-  color: #fff; font-size: clamp(14px, 4vw, 17px); padding: 12px 28px;
-  cursor: pointer; transition: background 0.15s; font-weight: 500;
-}
-.re-done-btn:not(:disabled):active { background: rgba(255,255,255,0.28); }
-.re-done-btn:disabled { opacity: 0.35; cursor: default; }
+/* Format guide — sits below button row */
 .re-guidance {
-  border-top: 1px solid rgba(255,255,255,0.12); padding-top: 10px; margin-top: 4px;
+  border-top: 1px solid rgba(255,255,255,0.12); padding-top: 8px;
 }
 .re-guidance summary {
   font-size: 13px; color: rgba(255,255,255,0.45); cursor: pointer; user-select: none;
-  list-style: none;
+  list-style: none; padding: 4px 0;
 }
 .re-guidance summary::-webkit-details-marker { display: none; }
 .re-guidance[open] summary { color: rgba(255,255,255,0.65); margin-bottom: 8px; }
@@ -1088,3 +1112,69 @@ flex-grow: 1;
   background: rgba(255,255,255,0.05); border-radius: 8px; padding: 10px 12px;
   margin: 0; line-height: 1.5;
 }
+.re-textarea {
+  width: 100%; box-sizing: border-box; min-height: 200px;
+  background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.20);
+  border-radius: 10px; color: #fff; font-family: 'Nunito', sans-serif;
+  font-size: 15px; padding: 12px; resize: vertical;
+  -webkit-appearance: none; outline: none;
+  line-height: 1.6;
+}
+.re-textarea:focus { border-color: rgba(255,255,255,0.45); }
+.re-status { min-height: 20px; font-size: 13px; font-weight: 400; }
+.re-error { color: #ff6b6b; }
+.re-ok    { color: #6bff8e; }
+/* All four buttons in one row — soft-dome pills */
+.re-btn-row { display: flex; gap: 8px; }
+/* Copy / Paste — warm amber pill (distinct from muted Cancel) */
+.re-clipboard-btn {
+  flex: 1; -webkit-appearance: none; font-family: var(--font);
+  background:
+    radial-gradient(circle at 72% 25%, rgba(255,220,150,0.20) 0%, rgba(255,255,255,0) 50%),
+    rgba(190, 120, 30, 0.22);
+  border: 1.5px solid transparent;
+  box-shadow: -3px 4px 8px rgba(0,0,0,0.28);
+  border-radius: 999px; color: rgba(255, 200, 110, 0.92); font-size: 14px;
+  padding: 10px 8px; cursor: pointer; transition: background 0.15s, transform 0.1s;
+}
+.re-clipboard-btn:active {
+  background:
+    radial-gradient(circle at 72% 25%, rgba(255,220,150,0.28) 0%, rgba(255,255,255,0) 50%),
+    rgba(190, 120, 30, 0.38);
+  transform: scale(0.96);
+}
+/* Cancel — muted pill */
+.re-cancel-btn {
+  flex: 1; -webkit-appearance: none; font-family: var(--font);
+  background:
+    radial-gradient(circle at 72% 25%, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0) 50%),
+    rgba(255,255,255,0.06);
+  border: 1.5px solid transparent;
+  box-shadow: -3px 4px 8px rgba(0,0,0,0.28);
+  border-radius: 999px; color: rgba(255,255,255,0.60); font-size: 14px;
+  padding: 10px 8px; cursor: pointer; transition: background 0.15s, transform 0.1s;
+}
+.re-cancel-btn:active {
+  background:
+    radial-gradient(circle at 72% 25%, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 50%),
+    rgba(255,255,255,0.14);
+  color: rgba(255,255,255,0.90); transform: scale(0.96);
+}
+/* Done — green pill */
+.re-done-btn {
+  flex: 1.4; -webkit-appearance: none; font-family: var(--font);
+  background:
+    radial-gradient(circle at 72% 25%, rgba(255,255,255,0.20) 0%, rgba(255,255,255,0) 50%),
+    linear-gradient(180deg, #2d7a3a 0%, #1a5c26 100%);
+  border: 1.5px solid transparent;
+  box-shadow: -3px 4px 8px rgba(0,0,0,0.30);
+  border-radius: 999px; color: #fff; font-size: 14px; font-weight: 600;
+  padding: 10px 8px; cursor: pointer; transition: background 0.15s, transform 0.1s;
+}
+.re-done-btn:not(:disabled):active {
+  background:
+    radial-gradient(circle at 72% 25%, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0) 50%),
+    linear-gradient(180deg, #1a5c26 0%, #0f3d18 100%);
+  transform: scale(0.96);
+}
+.re-done-btn:disabled { opacity: 0.35; cursor: default; }

@@ -207,6 +207,10 @@ function render() {
   $('info-btn').style.opacity       = showInfo ? '1' : '0';
   $('info-btn').style.pointerEvents = showInfo ? 'auto' : 'none';
 
+  // Plan back button — ready screen only, when routines are enabled
+  const planBack = $('plan-back-btn');
+  if (planBack) planBack.style.display = (isReady && settings.routinesEnabled) ? 'flex' : 'none';
+
   // Repetition counter visibility (work-phase only, hidden under overlays)
   if (typeof rcUpdateVisibility === 'function') rcUpdateVisibility();
 }

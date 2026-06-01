@@ -11,8 +11,8 @@
 <meta name="theme-color" id="meta-theme" content="#0d0d0d">
 <!-- Stamped by scripts/deploy.sh — used by the inline version-coherence
      check below to detect a hybrid-cache state at launch. Source ships
-     with 2026-06-01 11:14 as the literal placeholder. -->
-<meta name="microbreaker-build" content="2026-06-01 11:14">
+     with 2026-06-01 16:54 as the literal placeholder. -->
+<meta name="microbreaker-build" content="2026-06-01 16:54">
 <!-- PWA home-screen icon. MUST be a real PNG file reference — iOS Safari
      "Add to Home Screen" does not reliably accept data: URLs or JS-generated
      canvas icons. If you change this, test on iPad Safari: Share → Add to
@@ -228,7 +228,7 @@
   var current = (meta && meta.content) || null;
   // Treat the unstamped placeholder as no-info (running source uncompiled).
   // The placeholder string is built from string concatenation so the
-  // deploy.sh sed pass on this file (which replaces 2026-06-01 11:14 with
+  // deploy.sh sed pass on this file (which replaces 2026-06-01 16:54 with
   // the actual build) cannot match it as a contiguous substring. If we
   // wrote the literal here, sed would replace this check itself, turning
   // it into "if current === <build>" — i.e., treating every clean deploy
@@ -979,51 +979,54 @@ if (window._mbShowUpgradeModal) window._mbShowUpgradeModal(window._mbUpgrade);
   </div>
 </div>
 
-<!-- ROUTINE SELECTOR OVERLAY -->
+<!-- ROUTINE SELECTOR / PLAN PHASE SCREEN -->
 <div id="routine-selector-overlay">
+  <div class="rs-phase-label">PLAN</div>
+  <div class="rs-question">What will you practice today?</div>
   <div id="routine-selector-content">
-    <h2 class="rs-heading">What do you want to practice?</h2>
-    <div id="routine-selector-list"></div>
-    <div class="rs-section-divider"></div>
     <button id="rs-free-practice-btn" class="rs-free-btn">Free Practice</button>
-    <button id="rs-new-routine-btn" class="rs-new-btn">+ New Routine</button>
+    <div id="routine-selector-list"></div>
+    <button id="rs-new-routine-btn" class="rs-new-btn">
+      <span class="rs-new-plus">+</span>New Routine
+    </button>
   </div>
 </div>
+
+<!-- PLAN-BACK BUTTON — shown on the start screen when routines are enabled -->
+<button id="plan-back-btn" aria-label="Back to plan" style="display:none;">
+  <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+    <path d="M18 6 L10 14 L18 22" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+</button>
 
 <!-- ROUTINE EDITOR OVERLAY -->
 <div id="routine-editor-overlay">
   <div id="routine-editor-content">
     <h2 id="routine-editor-title" class="re-heading">New Routine</h2>
     <textarea id="routine-editor-textarea" class="re-textarea" spellcheck="false" autocorrect="off" autocapitalize="off"></textarea>
+    <div id="routine-editor-status" class="re-status"></div>
     <div class="re-btn-row">
       <button id="routine-editor-copy" class="re-clipboard-btn">Copy</button>
       <button id="routine-editor-paste" class="re-clipboard-btn">Paste</button>
-    </div>
-    <div id="routine-editor-status" class="re-status"></div>
-    <div class="re-action-row">
       <button id="routine-editor-cancel" class="re-cancel-btn">Cancel</button>
       <button id="routine-editor-done" class="re-done-btn" disabled>Done</button>
     </div>
-    <details class="re-guidance">
-      <summary>Format guide</summary>
-      <pre class="re-guidance-text">Fields in [] are optional.
+    <details id="re-guidance-details" class="re-guidance">
+      <summary>Format guide ▸</summary>
+      <pre class="re-guidance-text">Name: {name}
+[Order: Sequential | Random]
+{time} {subject}[; goal][; strategy][; retro question]
+[{time} Rest]
 
-Name: {Name of the routine}
-[Order: {Sequential | Random}]
-{chunkTime}[, {practiceTime}[, {microbreakTime}]] {subject}
-   [; {goal}][; {strategy}][; {retrospective question}]
-[{restTime} Rest]
-
-Times: M:SS (e.g. 4:00), :SS (e.g. :30), or minutes (e.g. 4)
-"Rest" is a reserved word — do not use it as a subject.
-Random plays each chunk once in shuffled order, then ends.
+Times: 4:00  or  :30  or  4  or  1.5 (= 1:30)
+Optional per-chunk overrides: chunkTime, practiceTime, microbreakTime
 
 Example:
 Name: Daily Drills
 Order: Sequential
-4:00 G Major Scale
+4:00 G Major Scale; Clean intonation; Slow bow, listen
 1:30 Rest
-6:00, 1:00, :10 Arpeggios; Focus on bow arm; Slow then fast; Did your bow arm stay relaxed?</pre>
+6, 1, :10 Arpeggios; Stay loose; Slow then fast; Did your bow arm stay relaxed?</pre>
     </details>
   </div>
 </div>

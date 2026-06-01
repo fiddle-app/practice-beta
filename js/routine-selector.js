@@ -40,6 +40,10 @@ function _closeRoutineSelector() {
   $('routine-selector-overlay').classList.remove('open');
 }
 
+let _pressTimer   = null;
+let _didLongPress = false;
+let _pressOrigin  = null;
+
 function _renderSelectorList() {
   const list      = getAllRoutines();
   const container = $('routine-selector-list');
@@ -52,7 +56,33 @@ function _renderSelectorList() {
     const nameBtn = document.createElement('button');
     nameBtn.className = 'rs-name-btn';
     nameBtn.textContent = routine.name;
+
+    // Long-press (500 ms) opens the editor; short tap starts the routine
+    nameBtn.addEventListener('pointerdown', (e) => {
+      _didLongPress  = false;
+      _pressOrigin   = { x: e.clientX, y: e.clientY };
+      _pressTimer    = setTimeout(() => {
+        _didLongPress = true;
+        _pressTimer   = null;
+        openRoutineEditor(routine);
+      }, 500);
+    });
+    nameBtn.addEventListener('pointermove', (e) => {
+      if (_pressTimer !== null && _pressOrigin) {
+        const dx = e.clientX - _pressOrigin.x;
+        const dy = e.clientY - _pressOrigin.y;
+        if (dx * dx + dy * dy > 64) { // > 8 px movement cancels press
+          clearTimeout(_pressTimer);
+          _pressTimer = null;
+        }
+      }
+    });
+    ['pointerup', 'pointercancel'].forEach(ev => {
+      nameBtn.addEventListener(ev, () => { clearTimeout(_pressTimer); _pressTimer = null; });
+    });
+    nameBtn.addEventListener('contextmenu', e => e.preventDefault());
     nameBtn.addEventListener('click', () => {
+      if (_didLongPress) return;
       _closeRoutineSelector();
       startRoutine(routine);
     });
@@ -117,6 +147,10 @@ function openRoutineEditor(routine) {
   $('routine-editor-status').textContent = '';
   $('routine-editor-status').className   = 're-status';
   _validateEditor();
+
+  // Show format guide for new routines; collapse it for edits
+  const guidance = $('re-guidance-details');
+  if (guidance) guidance.open = !routine;
 
   $('routine-editor-overlay').classList.add('open');
   textarea.focus();
@@ -250,10 +284,14 @@ function initRoutineSelector() {
   // Selector overlay events
   $('rs-free-practice-btn').addEventListener('click', () => {
     _closeRoutineSelector();
-    // activeRoutine is already null — timer starts as today
+    // activeRoutine is already null — timer starts as free practice
   });
 
   $('rs-new-routine-btn').addEventListener('click', () => openRoutineEditor(null));
+
+  // Back arrow on the start screen
+  const planBack = $('plan-back-btn');
+  if (planBack) planBack.addEventListener('click', () => openRoutineSelector());
 
   // Editor overlay events
   $('routine-editor-textarea').addEventListener('input', _scheduleValidation);
