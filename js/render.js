@@ -60,7 +60,7 @@ function render() {
   // Progress bar
   elProgressSec.style.visibility = inChunk ? 'visible' : 'hidden';
   if (inChunk) {
-    const C  = settings.chunkDur;
+    const C  = getDur('chunkDur');
     const pt = practiceTime;
 
     // Layered single bar: white → black → yellow as overage grows
@@ -84,15 +84,38 @@ function render() {
     elTimeProgress.innerHTML = '<strong>' + fmtF(pt) + '</strong> of ' + fmt(C);
   }
 
-  // Rest questions
-  elRestQ.style.display = (isReady || isRest) ? 'flex' : 'none';
-  if (isReady || isRest) {
+  // Chunk info (subject / goal / strategy) — shown when in a routine
+  const activeChunk  = (typeof getActiveChunk === 'function') ? getActiveChunk() : null;
+  const showChunkInfo = !!(activeChunk && (isWork || isBreak || isReady));
+  $('chunk-info').style.display = showChunkInfo ? 'flex' : 'none';
+  if (showChunkInfo) {
+    $('chunk-subject').textContent  = activeChunk.subject  || '';
+    $('chunk-goal').textContent     = activeChunk.goal     || '';
+    $('chunk-goal').style.display   = activeChunk.goal     ? '' : 'none';
+    $('chunk-strategy').textContent = activeChunk.strategy || '';
+    $('chunk-strategy').style.display = activeChunk.strategy ? '' : 'none';
+  }
+
+  // Rest questions — hidden if chunk-info is showing (they are mutually exclusive)
+  elRestQ.style.display = (!showChunkInfo && (isReady || isRest)) ? 'flex' : 'none';
+  if (!showChunkInfo && (isReady || isRest)) {
     const ps = elRestQ.querySelectorAll('p');
     const q  = isRest
       ? (settings.restQClose || ['', '']).concat([''])
       : (settings.restQ     || ['', '', '']);
     for (let i = 0; i < 3; i++) {
       if (ps[i]) { ps[i].textContent = q[i] || ''; ps[i].style.display = q[i] ? '' : 'none'; }
+    }
+  }
+
+  // Retrospective question on rest screen (overrides restQClose[0] when set)
+  if (isRest && activeChunk && activeChunk.retrospectiveQ) {
+    elRestQ.style.display = 'flex';
+    const ps = elRestQ.querySelectorAll('p');
+    const closeQs = settings.restQClose || ['', ''];
+    const qs = [activeChunk.retrospectiveQ, closeQs[1] || '', ''];
+    for (let i = 0; i < 3; i++) {
+      if (ps[i]) { ps[i].textContent = qs[i] || ''; ps[i].style.display = qs[i] ? '' : 'none'; }
     }
   }
 
@@ -107,8 +130,8 @@ function render() {
     $('chunk-summary').innerHTML = html;
   }
 
-  // Round counter
-  elRoundCtr.innerHTML = inChunk ? 'Round<br>' + (currentRound + 1) : '';
+  // Round counter — single line when chunk-info is present to save vertical space
+  elRoundCtr.textContent = inChunk ? 'Round ' + (currentRound + 1) : '';
 
   // Ring visibility
   const ringOpacity = isReady ? '0' : '1';
@@ -122,7 +145,7 @@ function render() {
   elReadyRing.style.display   = showReady ? 'block' : 'none';
   $('ring-wrap').classList.toggle('ring-start-ready', isReady);
   elReadyRing.textContent     = waitingToAdvance
-    ? (practiceTime >= 3 * settings.chunkDur ? 'Asleep?' : (phase === 'break' ? 'Ready?' : 'Done?'))
+    ? (practiceTime >= 3 * getDur('chunkDur') ? 'Asleep?' : (phase === 'break' ? 'Ready?' : 'Done?'))
     : 'Ready?';
   // Also show the ring strokes when waitingToAdvance (they're hidden in isReady)
   if (waitingToAdvance) {
@@ -131,7 +154,7 @@ function render() {
   }
 
   if (!showReady && (isWork || isBreak || isRest)) {
-    const total  = isWork ? settings.workDur : isBreak ? settings.breakDur : settings.restDur;
+    const total  = isWork ? getDur('workDur') : isBreak ? getDur('breakDur') : getDur('restDur');
     const frac   = total > 0 ? phaseTimeLeft / total : 0;
     elRingFg.style.strokeDashoffset =
       (RING_C * (1 - Math.min(1, Math.max(0, frac)))).toFixed(3);

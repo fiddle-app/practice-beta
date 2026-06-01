@@ -52,7 +52,7 @@ function _enterPhase(p) {
   render();
 
   if (p === 'work') {
-    phaseTimeLeft = settings.workDur;
+    phaseTimeLeft = getDur('workDur');
     // Play the bell first, then start recording — recorder is deferred inside
     // startRecording() so the bell tail isn't captured. If mic isn't yet
     // acquired, the bell plays inside the acquireMic promise after ctx resumes.
@@ -60,7 +60,7 @@ function _enterPhase(p) {
     if (audioUnlocked && _hadMic) playWorkStart();
     startRecording();
   } else if (p === 'break') {
-    phaseTimeLeft = settings.breakDur;
+    phaseTimeLeft = getDur('breakDur');
     stopRecording();
     msgIndex = (msgIndex + 1) % Math.max(1, settings.messages.length);
     // playBreakStart() is called by _advance() before entering this phase
@@ -71,7 +71,7 @@ function _enterPhase(p) {
     // is no longer reachable to the user, so free it now rather than let
     // it linger across the entire rest phase.
     if (typeof clearReviewBlob === 'function') clearReviewBlob();
-    phaseTimeLeft = settings.restDur;
+    phaseTimeLeft = getDur('restDur');
   } else if (p === 'ready') {
     phaseTimeLeft = 0;
     if (typeof clearReviewBlob === 'function') clearReviewBlob();
@@ -93,17 +93,17 @@ function _advance(force) {
     if (!workAuto) {
       // Don't play chime yet — wait until user actually advances to break
       waitingToAdvance = true;
-      if (practiceTime >= 3 * settings.chunkDur && audioUnlocked) playAsleepDing();
+      if (practiceTime >= 3 * getDur('chunkDur') && audioUnlocked) playAsleepDing();
       render(); return;
     }
     if (audioUnlocked) playBreakStart();
     _enterPhase('break');
   } else if (phase === 'break') {
-    if (practiceTime >= settings.chunkDur) {
+    if (practiceTime >= getDur('chunkDur')) {
       // Chunk budget reached — save summary stats before entering rest
       lastPracticeTime = practiceTime;
       lastChunkElapsed = chunkStartTime ? (Date.now() - chunkStartTime) / 1000 : 0;
-      lastChunkDur     = settings.chunkDur;
+      lastChunkDur     = getDur('chunkDur');
       stopRecording();
       if (audioUnlocked) playFinalGong();
       lastTickTime = null;
@@ -120,6 +120,9 @@ function _advance(force) {
     }
   } else if (phase === 'rest-count') {
     if (audioUnlocked) playBackToWork();
+    // Arm next chunk's overrides (or open selector on completion) before
+    // entering ready so the start screen shows the upcoming chunk's info.
+    if (typeof nextChunk === 'function') nextChunk();
     _enterPhase('ready');
   }
 }
@@ -137,11 +140,11 @@ function restartPhase() {
   if (phase === 'ready') return;
   waitingToAdvance = false;
   if (phase === 'rest-count') {
-    phaseTimeLeft = settings.restDur;
+    phaseTimeLeft = getDur('restDur');
     cntFired = {3:false, 2:false, 1:false};
     isPaused = false; lastTickTime = null; render(); return;
   }
-  const phaseDur = phase === 'work' ? settings.workDur : settings.breakDur;
+  const phaseDur = phase === 'work' ? getDur('workDur') : getDur('breakDur');
   phaseTimeLeft = phaseDur;
   cntFired = {3:false, 2:false, 1:false};
   if (phase === 'work') { stopRecording(); startRecording(); }
@@ -184,7 +187,7 @@ function tick(now) {
 
   // Bell when bar fills to 100% at each chunkDur multiple
   if (phase === 'work' || (phase === 'break' && settings.breaksCountAsPractice)) {
-    const C = settings.chunkDur;
+    const C = getDur('chunkDur');
     [1, 2, 3].forEach(n => {
       const tgt = n * C;
       if (!milestonesFired[n] && practiceTime >= tgt && practiceTime - dt < tgt) {

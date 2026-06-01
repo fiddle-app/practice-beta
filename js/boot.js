@@ -11,6 +11,7 @@ practiceTime     = 0;
 chunkStartTime   = null;
 render();
 rafId = requestAnimationFrame(tick);
+if (typeof initRoutineSelector === 'function') initRoutineSelector();
 
 // Resurrect the vcWipeAndRebuild debug banner if a wipe fired during a
 // previous session and Casey didn't dismiss it.

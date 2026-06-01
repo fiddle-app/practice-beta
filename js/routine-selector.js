@@ -1,0 +1,263 @@
+'use strict';
+
+// =================================================
+// ROUTINE SELECTOR — "What do you want to practice?" modal
+//                    + New/Edit Routine modal
+// =================================================
+
+const STARTER_ROUTINE_TEXT =
+`Name: My Routine
+Order: Sequential
+5:00 First thing to practice`;
+
+const EDITOR_GUIDANCE =
+`Fields in [] are optional.
+
+Name: {Name of the routine}
+[Order: {Sequential | Random | Random with no repeats}]
+{chunkTime}[, {practiceTime}[, {microbreakTime}]] {subject}[; {goal}][; {strategy}][; {retrospective question}]
+[{restTime} Rest]
+
+Times: M:SS (e.g. 4:00), :SS (e.g. :30), or minutes (e.g. 4)
+"Rest" is a reserved word — do not use it as a subject.
+
+Example:
+Name: Daily Drills
+Order: Sequential
+4:00 G Major Scale
+1:30 Rest
+6:00, 1:00, :10 Arpeggios; Focus on bow arm; Slow then fast; Did your bow arm stay relaxed?`;
+
+// ---- Selector modal ----
+
+function openRoutineSelector() {
+  _renderSelectorList();
+  $('routine-selector-overlay').classList.add('open');
+}
+
+function _closeRoutineSelector() {
+  $('routine-selector-overlay').classList.remove('open');
+}
+
+function _renderSelectorList() {
+  const list      = getAllRoutines();
+  const container = $('routine-selector-list');
+  container.innerHTML = '';
+
+  list.forEach(routine => {
+    const row = document.createElement('div');
+    row.className = 'rs-row';
+
+    const nameBtn = document.createElement('button');
+    nameBtn.className = 'rs-name-btn';
+    nameBtn.textContent = routine.name;
+    nameBtn.addEventListener('click', () => {
+      _closeRoutineSelector();
+      startRoutine(routine);
+    });
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'rs-icon-btn';
+    editBtn.setAttribute('aria-label', 'Edit ' + routine.name);
+    editBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+    editBtn.addEventListener('click', () => openRoutineEditor(routine));
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'rs-icon-btn rs-delete-btn';
+    delBtn.setAttribute('aria-label', 'Delete ' + routine.name);
+    delBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+    delBtn.addEventListener('click', () => _confirmDelete(routine, row));
+
+    row.append(nameBtn, editBtn, delBtn);
+    container.appendChild(row);
+  });
+}
+
+function _confirmDelete(routine, row) {
+  // Replace row content with inline confirm
+  row.innerHTML = '';
+  const msg = document.createElement('span');
+  msg.className = 'rs-confirm-msg';
+  msg.textContent = 'Delete "' + routine.name + '"?';
+
+  const yesBtn = document.createElement('button');
+  yesBtn.className = 'rs-confirm-yes';
+  yesBtn.textContent = 'Delete';
+  yesBtn.addEventListener('click', () => {
+    deleteRoutine(routine.id);
+    _renderSelectorList();
+  });
+
+  const noBtn = document.createElement('button');
+  noBtn.className = 'rs-confirm-no';
+  noBtn.textContent = 'Cancel';
+  noBtn.addEventListener('click', () => _renderSelectorList());
+
+  row.append(msg, yesBtn, noBtn);
+}
+
+// ---- Editor modal ----
+
+let _editingRoutineId = null;
+let _validationTimer  = null;
+
+function openRoutineEditor(routine) {
+  _editingRoutineId = routine ? routine.id : null;
+
+  const textarea = $('routine-editor-textarea');
+  if (routine) {
+    textarea.value = _routineToText(routine);
+    $('routine-editor-title').textContent = 'Edit Routine';
+  } else {
+    textarea.value = STARTER_ROUTINE_TEXT;
+    $('routine-editor-title').textContent = 'New Routine';
+  }
+
+  $('routine-editor-status').textContent = '';
+  $('routine-editor-status').className   = 're-status';
+  _validateEditor();
+
+  $('routine-editor-overlay').classList.add('open');
+  textarea.focus();
+  // Pre-select the name value so the user can type immediately to replace it
+  if (!routine) {
+    const prefix = 'Name: ';
+    const start  = textarea.value.indexOf(prefix) + prefix.length;
+    const end    = textarea.value.indexOf('\n', start);
+    textarea.setSelectionRange(start, end >= 0 ? end : textarea.value.length);
+  }
+}
+
+function _closeEditor() {
+  $('routine-editor-overlay').classList.remove('open');
+}
+
+function _validateEditor() {
+  const text   = $('routine-editor-textarea').value;
+  const result = parseRoutineText(text);
+  const status = $('routine-editor-status');
+  const doneBtn = $('routine-editor-done');
+
+  if (result.errors.length > 0) {
+    status.textContent = result.errors[0];
+    status.className   = 're-status re-error';
+    doneBtn.disabled   = true;
+  } else {
+    status.textContent = 'Looks good';
+    status.className   = 're-status re-ok';
+    doneBtn.disabled   = false;
+  }
+}
+
+function _scheduleValidation() {
+  clearTimeout(_validationTimer);
+  _validationTimer = setTimeout(_validateEditor, 300);
+}
+
+function _saveEditor() {
+  const text   = $('routine-editor-textarea').value;
+  const result = parseRoutineText(text);
+  if (result.errors.length > 0) return;
+
+  const routine = result.routine;
+  routine.id    = _editingRoutineId || null;
+  upsertRoutine(routine);
+
+  _closeEditor();
+  _renderSelectorList();
+}
+
+function _copyEditorText() {
+  const text = $('routine-editor-textarea').value;
+  navigator.clipboard.writeText(text).then(() => {
+    _flashBtn($('routine-editor-copy'), 'Copied!');
+  }).catch(() => {
+    _flashBtn($('routine-editor-copy'), 'Failed');
+  });
+}
+
+function _pasteEditorText() {
+  navigator.clipboard.readText().then(text => {
+    $('routine-editor-textarea').value = text;
+    _validateEditor();
+    _flashBtn($('routine-editor-paste'), 'Pasted!');
+  }).catch(() => {
+    _flashBtn($('routine-editor-paste'), 'Failed');
+  });
+}
+
+function _flashBtn(btn, msg) {
+  const orig = btn.textContent;
+  btn.textContent = msg;
+  setTimeout(() => { btn.textContent = orig; }, 1500);
+}
+
+// Convert a stored routine back to editable text
+function _routineToText(routine) {
+  const lines = [];
+  lines.push('Name: ' + routine.name);
+
+  const orderMap = { sequential: 'Sequential', random: 'Random', 'random-no-repeat': 'Random with no repeats' };
+  if (routine.order && routine.order !== 'sequential') {
+    lines.push('Order: ' + (orderMap[routine.order] || 'Sequential'));
+  }
+
+  let lastRestTime = null;
+
+  routine.chunks.forEach(chunk => {
+    // Emit Rest: line if restTime changed
+    if (chunk.restTime !== lastRestTime) {
+      if (chunk.restTime !== null) {
+        lines.push(_fmtTime(chunk.restTime) + ' Rest');
+      }
+      lastRestTime = chunk.restTime;
+    }
+
+    // Build time prefix — format is positional: chunkTime[, practiceTime[, microbreakTime]]
+    // microbreakTime can only be emitted when practiceTime is also present.
+    const times = [];
+    if (chunk.chunkTime !== null) {
+      times.push(_fmtTime(chunk.chunkTime));
+      if (chunk.practiceTime !== null) {
+        times.push(_fmtTime(chunk.practiceTime));
+        if (chunk.microbreakTime !== null) times.push(_fmtTime(chunk.microbreakTime));
+      }
+    }
+
+    const timeStr = times.join(', ');
+    const suffix  = [chunk.goal, chunk.strategy, chunk.retrospectiveQ]
+      .map(s => s || '')
+      .join('; ')
+      .replace(/;\s*$/, '').replace(/(?:;\s*)+$/, '');
+
+    const chunkLine = (timeStr ? timeStr + ' ' : '') + chunk.subject + (suffix ? '; ' + suffix : '');
+    lines.push(chunkLine);
+  });
+
+  return lines.join('\n');
+}
+
+function _fmtTime(sec) {
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return m + ':' + s.toString().padStart(2, '0');
+}
+
+// ---- Wire up DOM events (called once after DOM ready) ----
+
+function initRoutineSelector() {
+  // Selector overlay events
+  $('rs-free-practice-btn').addEventListener('click', () => {
+    _closeRoutineSelector();
+    // activeRoutine is already null — timer starts as today
+  });
+
+  $('rs-new-routine-btn').addEventListener('click', () => openRoutineEditor(null));
+
+  // Editor overlay events
+  $('routine-editor-textarea').addEventListener('input', _scheduleValidation);
+  $('routine-editor-done').addEventListener('click', _saveEditor);
+  $('routine-editor-cancel').addEventListener('click', _closeEditor);
+  $('routine-editor-copy').addEventListener('click', _copyEditorText);
+  $('routine-editor-paste').addEventListener('click', _pasteEditorText);
+}

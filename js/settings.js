@@ -5,7 +5,7 @@
 // =================================================
 // Release mic tracks between phases on Safari/iOS (so the mic indicator turns off).
 // On Chrome, keep the stream alive to avoid re-prompting each work phase.
-const BUILD_DATE = '2026-05-30 02:58';   // stamped automatically by deploy.sh — do not edit manually
+const BUILD_DATE = '2026-06-01 07:42';   // stamped automatically by deploy.sh — do not edit manually
 const IS_SAFARI  = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
 const DEFAULTS = {
@@ -40,7 +40,8 @@ const DEFAULTS = {
   // Per-command overrides: keyed by command ID, value is { enabled: bool, trigger: string }.
   // trigger is comma-separated words/phrases replacing the builtin list; empty = use builtin.
   // Missing key = enabled with builtin triggers.
-  vcCommandOverrides:    {}
+  vcCommandOverrides:    {},
+  routinesEnabled:       false
 };
 
 let settings = (() => {

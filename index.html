@@ -11,8 +11,8 @@
 <meta name="theme-color" id="meta-theme" content="#0d0d0d">
 <!-- Stamped by scripts/deploy.sh — used by the inline version-coherence
      check below to detect a hybrid-cache state at launch. Source ships
-     with 2026-05-30 02:58 as the literal placeholder. -->
-<meta name="microbreaker-build" content="2026-05-30 02:58">
+     with 2026-06-01 07:42 as the literal placeholder. -->
+<meta name="microbreaker-build" content="2026-06-01 07:42">
 <!-- PWA home-screen icon. MUST be a real PNG file reference — iOS Safari
      "Add to Home Screen" does not reliably accept data: URLs or JS-generated
      canvas icons. If you change this, test on iPad Safari: Share → Add to
@@ -228,7 +228,7 @@
   var current = (meta && meta.content) || null;
   // Treat the unstamped placeholder as no-info (running source uncompiled).
   // The placeholder string is built from string concatenation so the
-  // deploy.sh sed pass on this file (which replaces 2026-05-30 02:58 with
+  // deploy.sh sed pass on this file (which replaces 2026-06-01 07:42 with
   // the actual build) cannot match it as a contiguous substring. If we
   // wrote the literal here, sed would replace this check itself, turning
   // it into "if current === <build>" — i.e., treating every clean deploy
@@ -609,6 +609,11 @@ if (window._mbShowUpgradeModal) window._mbShowUpgradeModal(window._mbUpgrade);
   <!-- MIDDLE -->
   <div id="mid-section">
     <div id="mid-zone">
+      <div id="chunk-info" style="display:none;">
+        <div id="chunk-subject"></div>
+        <div id="chunk-goal" style="display:none;"></div>
+        <div id="chunk-strategy" style="display:none;"></div>
+      </div>
       <div id="rest-questions" style="display: flex;">
         <p>What is your goal?</p>
         <p>How will you achieve it?</p>
@@ -796,6 +801,8 @@ if (window._mbShowUpgradeModal) window._mbShowUpgradeModal(window._mbUpgrade);
   <div class="s-row"><div class="s-label">Rest</div><div class="s-stepper"><button class="step-btn" data-field="restDur" data-dir="-1">−</button><div class="s-val" id="sv-rest">2:00</div><button class="step-btn" data-field="restDur" data-dir="1">+</button></div></div>
   <div class="s-row"><div class="s-label">Maximum Recording</div><div class="s-stepper"><button class="step-btn" data-field="maxRecDur" data-dir="-1">−</button><div class="s-val" id="sv-maxrec">10:00</div><button class="step-btn" data-field="maxRecDur" data-dir="1">+</button></div></div>
   <div class="s-sec">Behavior</div>
+  <div class="tog-row"><div class="tog-label">Practice Routines</div><label class="tog-sw"><input type="checkbox" id="s-routines"><div class="tog-track"></div><div class="tog-thumb"></div></label></div>
+  <div class="s-sub" style="padding: 0 0 6px;">Show routine selector after hello screen. Manage routines from the selector.</div>
   <div class="tog-row"><div class="tog-label">Automatically Advance</div><label class="tog-sw"><input type="checkbox" id="s-auto"><div class="tog-track"></div><div class="tog-thumb"></div></label></div>
   <div class="tog-row"><div class="tog-label">Record / Review Practice</div><label class="tog-sw"><input type="checkbox" id="s-record"><div class="tog-track"></div><div class="tog-thumb"></div></label></div>
   <div class="tog-row"><div class="tog-label">Listen for voice commands</div><label class="tog-sw"><input type="checkbox" id="s-voice"><div class="tog-track"></div><div class="tog-thumb"></div></label></div>
@@ -969,6 +976,54 @@ if (window._mbShowUpgradeModal) window._mbShowUpgradeModal(window._mbUpgrade);
     <p class="info-p" style="font-size:0.85em;opacity:0.72;font-style:italic;margin-top:14px;">In a car (or wherever connected to Bluetooth audio) with voice control, sound will come through your phone. Without, it will come through the Bluetooth speakers. This is a limitation of web apps.</p>
     <div class="welcome-push"></div>
     <div class="launch-build-date" id="hello-build-date"></div>
+  </div>
+</div>
+
+<!-- ROUTINE SELECTOR OVERLAY -->
+<div id="routine-selector-overlay">
+  <div id="routine-selector-content">
+    <h2 class="rs-heading">What do you want to practice?</h2>
+    <div id="routine-selector-list"></div>
+    <div class="rs-section-divider"></div>
+    <button id="rs-free-practice-btn" class="rs-free-btn">Free Practice</button>
+    <button id="rs-new-routine-btn" class="rs-new-btn">+ New Routine</button>
+  </div>
+</div>
+
+<!-- ROUTINE EDITOR OVERLAY -->
+<div id="routine-editor-overlay">
+  <div id="routine-editor-content">
+    <h2 id="routine-editor-title" class="re-heading">New Routine</h2>
+    <textarea id="routine-editor-textarea" class="re-textarea" spellcheck="false" autocorrect="off" autocapitalize="off"></textarea>
+    <div class="re-btn-row">
+      <button id="routine-editor-copy" class="re-clipboard-btn">Copy</button>
+      <button id="routine-editor-paste" class="re-clipboard-btn">Paste</button>
+    </div>
+    <div id="routine-editor-status" class="re-status"></div>
+    <div class="re-action-row">
+      <button id="routine-editor-cancel" class="re-cancel-btn">Cancel</button>
+      <button id="routine-editor-done" class="re-done-btn" disabled>Done</button>
+    </div>
+    <details class="re-guidance">
+      <summary>Format guide</summary>
+      <pre class="re-guidance-text">Fields in [] are optional.
+
+Name: {Name of the routine}
+[Order: {Sequential | Random | Random with no repeats}]
+{chunkTime}[, {practiceTime}[, {microbreakTime}]] {subject}
+   [; {goal}][; {strategy}][; {retrospective question}]
+[{restTime} Rest]
+
+Times: M:SS (e.g. 4:00), :SS (e.g. :30), or minutes (e.g. 4)
+"Rest" is a reserved word — do not use it as a subject.
+
+Example:
+Name: Daily Drills
+Order: Sequential
+4:00 G Major Scale
+1:30 Rest
+6:00, 1:00, :10 Arpeggios; Focus on bow arm; Slow then fast; Did your bow arm stay relaxed?</pre>
+    </details>
   </div>
 </div>
 
@@ -1175,6 +1230,10 @@ if (window._mbShowUpgradeModal) window._mbShowUpgradeModal(window._mbUpgrade);
      boot used to crash the iPhone PWA before the welcome overlay rendered. -->
 <script src="js/voice-commands.js"></script>
 <script src="js/voice.js"></script>
+<script src="js/routines.js"></script>
+<script src="js/routine-parser.js"></script>
+<script src="js/routine-player.js"></script>
+<script src="js/routine-selector.js"></script>
 <script src="js/timer.js"></script>
 <script src="js/render.js"></script>
 <script src="js/safe-area.js"></script>

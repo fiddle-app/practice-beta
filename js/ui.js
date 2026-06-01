@@ -27,6 +27,8 @@ document.addEventListener('keydown', e => {
   wlOnActivity('keydown');
   if ($('settings-overlay').classList.contains('open')) return;
   if ($('info-overlay').classList.contains('open')) return;
+  if ($('routine-selector-overlay').classList.contains('open')) return;
+  if ($('routine-editor-overlay').classList.contains('open')) return;
   if ($('review-overlay').classList.contains('open')) {
     if (e.code === 'Space') { e.preventDefault(); $('rev-playpause').click(); }
     if (e.code === 'Enter') { e.preventDefault(); closeReview(); }
@@ -73,6 +75,8 @@ window.addEventListener('pageshow', () => {
   $('settings-overlay').classList.remove('open');
   $('info-overlay').classList.remove('open');
   $('reset-overlay').classList.remove('open');
+  $('routine-selector-overlay').classList.remove('open');
+  $('routine-editor-overlay').classList.remove('open');
   // Note: audio nuke on pageshow is handled by audio-ctx.js
 });
 
@@ -125,6 +129,7 @@ function syncSettingsUI() {
   $('s-vc-keep').checked     = !!settings.vcKeepLastWord;
   $('s-auto').checked        = settings.autoAdvance !== false;
   $('s-breaks-count').checked = !!settings.breaksCountAsPractice;
+  $('s-routines').checked    = !!settings.routinesEnabled;
   const rq = settings.restQ || ['', '', ''];
   $('s-restq1').value = rq[0] || '';
   $('s-restq2').value = rq[1] || '';
@@ -165,6 +170,16 @@ $('s-vol').addEventListener('input', e => {
 });
 $('s-auto').addEventListener('change',        e => { if (_syncingUI) return; settings.autoAdvance = e.target.checked; saveSettings(); });
 $('s-breaks-count').addEventListener('change', e => { if (_syncingUI) return; settings.breaksCountAsPractice = e.target.checked; saveSettings(); });
+$('s-routines').addEventListener('change',    e => {
+  if (_syncingUI) return;
+  settings.routinesEnabled = e.target.checked;
+  saveSettings();
+  // Convenience: when first turning on with no routines, open the editor immediately
+  if (settings.routinesEnabled && typeof getAllRoutines === 'function' && getAllRoutines().length === 0) {
+    $('settings-overlay').classList.remove('open');
+    if (typeof openRoutineEditor === 'function') openRoutineEditor(null);
+  }
+});
 
 $('s-record').addEventListener('change', async e => {
   if (_syncingUI) return;
@@ -1141,7 +1156,9 @@ $('close-btn').addEventListener('click', () => {
   setTimeout(() => {
     phase = 'ready'; isPaused = false; phaseTimeLeft = 0;
     waitingToAdvance = false;
+    if (typeof clearActiveRoutine === 'function') clearActiveRoutine();
     render();
+    if (settings.routinesEnabled && typeof openRoutineSelector === 'function') openRoutineSelector();
   }, 1600);
 });
 
@@ -1205,6 +1222,7 @@ function closeWelcome(withVoice) {
   $('app').style.visibility = '';
   _launchGateCleared = true;
   _onLaunchChoice(!!withVoice);
+  if (settings.routinesEnabled) openRoutineSelector();
 }
 
 function closeHello(withVoice) {
@@ -1213,6 +1231,7 @@ function closeHello(withVoice) {
   $('app').style.visibility = '';
   _launchGateCleared = true;
   _onLaunchChoice(!!withVoice);
+  if (settings.routinesEnabled) openRoutineSelector();
 }
 
 function _onLaunchChoice(withVoice) {
