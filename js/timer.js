@@ -48,6 +48,10 @@ function _enterPhase(p) {
   // welcome/ready, before any user gesture) can succeed now.
   if (typeof vcStart === 'function') vcStart();
 
+  // Recompute master gain for this phase — the speakerphone-rail boost depends on
+  // appWantsMic(), so keep it fresh per phase (covers recording/VC toggled mid-session).
+  if (typeof updateMasterGain === 'function') updateMasterGain();
+
   // Render immediately so background color changes without waiting for next RAF tick
   render();
 

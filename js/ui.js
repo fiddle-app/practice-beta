@@ -749,6 +749,7 @@ let revTrimEnd        = 0;   // seconds into raw audio where content ends
 let reviewBuffer       = null;  // decoded AudioBuffer; alive only during review
 let reviewSource       = null;  // current AudioBufferSourceNode (recreated on play/seek)
 let reviewGain         = null;  // GainNode for review volume
+let revPeak            = 0;     // |max| sample of the decoded review buffer — for the clip-safe gain clamp
 let reviewPlaying      = false;
 let reviewSeekOffset   = 0;     // playback position (sec) when source was last started
 let reviewStartCtxTime = 0;     // audioCtx.currentTime when current source started
@@ -927,6 +928,32 @@ function _revCalcTrimAndDraw() {
   }
 }
 
+// Peak magnitude of the decoded review buffer (|max| sample). decodeAudioData can
+// return over-unity samples (our record boost), so this can exceed 1.0. Used to
+// clamp review gain so the speakerphone-rail boost + the volume slider can't drive
+// the recording into hard clipping at the destination.
+function _bufferPeak(buffer) {
+  const data = buffer.getChannelData(0);
+  let peak = 0;
+  for (let i = 0; i < data.length; i++) {
+    const v = data[i] < 0 ? -data[i] : data[i];
+    if (v > peak) peak = v;
+  }
+  return peak;
+}
+
+// Review playback gain: reviewVol slider × the speakerphone-rail boost (same 2x as
+// the bells when the mic's live, via _railBoost in audio.js), clamped so the output
+// peak stays under REVIEW_CEIL. The slider stays a free "additional adjustment on
+// top," capped to clip-safe regardless of how hot the recording is.
+const REVIEW_CEIL = 0.97;
+function _reviewGainValue() {
+  const base = (parseFloat(settings.reviewVol) || 0.8) *
+               (typeof _railBoost === 'function' ? _railBoost() : 1.0);
+  if (revPeak > 0) return Math.min(base, REVIEW_CEIL / revPeak);
+  return base;
+}
+
 async function openReview() {
   if (!reviewBlob) return;
   // ensureAudio() is async; openReview is called from a click handler so
@@ -979,13 +1006,14 @@ async function openReview() {
     // The decoded buffer is reused for both playback and waveform.
     reviewBuffer = await audioCtx.decodeAudioData(buf.slice(0));
     revKnownDuration = reviewBuffer.duration;
+    revPeak = _bufferPeak(reviewBuffer);
 
     // Set up gain node (kept alive for the review session)
     if (reviewGain) {
       try { reviewGain.disconnect(); } catch (_) {}
     }
     reviewGain = audioCtx.createGain();
-    reviewGain.gain.value = parseFloat(settings.reviewVol) || 0.8;
+    reviewGain.gain.value = _reviewGainValue();
     reviewGain.connect(audioCtx.destination);
 
     _revCalcTrimAndDraw();
@@ -1128,7 +1156,7 @@ $('rev-exit').addEventListener('click', closeReview);
 $('rev-vol').addEventListener('input', e => {
   const v = parseFloat(e.target.value);
   settings.reviewVol = v;
-  if (reviewGain) reviewGain.gain.value = v;
+  if (reviewGain) reviewGain.gain.value = _reviewGainValue();
   saveSettings();
 });
 

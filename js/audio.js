@@ -6,12 +6,28 @@
 //             settings (settings.js)
 // =================================================
 
-// Resolver consumed by _shared/js/audio-ctx.js. Returns the initial
-// master-gain value used by ensureAudio and unmuteMasterGain, and now
-// also by updateMasterGain (settings-driven writes) so boot and slider
-// writes resolve to the identical gain — no boot-vs-write asymmetry.
+// Speakerphone-rail loudness compensation. When the app wants the mic (recording
+// or voice commands), iOS pins output to the quiet speakerphone volume rail, AND
+// we've disabled iOS's voice-processing output boost to keep recordings clean
+// (mic-recording.js). Both make output quiet, and a PWA can't touch the hardware
+// rail — so we compensate in software by boosting masterGain. Off that rail (no
+// mic wanted → media rail) output is already loud, so no boost (2x there could
+// clip). Gated on appWantsMic() rather than the live mic so it's stable across the
+// session and also covers voice-only (mic live, recording off). Bounded by digital
+// clipping: bell base gains (0.28–0.42) stay under 1.0 at 2x; if overlapping sounds
+// ever clip audibly, add a master-bus limiter.
+const SPEAKERPHONE_BOOST = 2.0;
+function _railBoost() {
+  return (typeof appWantsMic === 'function' && appWantsMic()) ? SPEAKERPHONE_BOOST : 1.0;
+}
+
+// Resolver consumed by _shared/js/audio-ctx.js. Returns the master-gain value used
+// by ensureAudio and unmuteMasterGain, and by updateMasterGain (settings-driven
+// writes) so boot and slider writes resolve identically — no boot-vs-write
+// asymmetry. Includes the speakerphone-rail boost above; notifyVol is the user's
+// tweak on top of it.
 function getMasterGainForSettings() {
-  return (parseFloat(settings.notifyVol) || 0.35) / 0.35;
+  return ((parseFloat(settings.notifyVol) || 0.35) / 0.35) * _railBoost();
 }
 
 // Resolver consumed by _shared/js/audio-ctx.js (ensureAudio) and
