@@ -49,6 +49,43 @@ function _recGainMult() {
   return (isNaN(pct) ? 400 : pct) / 100;
 }
 
+// Retroactively strip iOS voice processing (noiseSuppression / autoGainControl /
+// echoCancellation) from the LIVE mic track, for clean fiddle capture. iOS applies
+// these by default at the getUserMedia layer, and shared mic.js requests plain
+// `audio: true` — changing THAT request would be a _shared edit affecting ear-tuner.
+// So instead we re-negotiate the already-acquired track in place via applyConstraints:
+// a separate, microbreaker-local call on the track object; shared's getUserMedia is
+// untouched.
+//
+// CAVEAT (the whole reason this is an experiment): iOS Safari honors these flags via
+// applyConstraints INCONSISTENTLY — the track was built with iOS's voice-processing
+// audio unit and applyConstraints may not swap it out. The getSettings() readback
+// below is the diagnostic: if it logs ns=false the OS accepted it; if the NS gating
+// still chops sustained fiddle notes, iOS ignored it and the only remaining fix is the
+// constraint at getUserMedia time (a _shared change via an appMicConstraints() hook).
+//
+// Scope: there is ONE shared mic track, also used by voice commands — so while a
+// recording session is active, voice recognition runs without noise suppression too.
+// Fire-and-forget: the RECORD_START_DELAY_MS gap before _beginRec covers the
+// renegotiation, and the constraints persist on the track for the ongoing capture.
+async function _applyRecordingConstraints() {
+  if (!micStream) return;
+  const track = micStream.getAudioTracks()[0];
+  if (!track || typeof track.applyConstraints !== 'function') return;
+  try {
+    await track.applyConstraints({
+      echoCancellation: false,
+      noiseSuppression: false,
+      autoGainControl: false,
+    });
+    const s = (typeof track.getSettings === 'function') ? track.getSettings() : {};
+    console.log('[rec] applyConstraints ok — readback ns=' + s.noiseSuppression +
+                ' agc=' + s.autoGainControl + ' ec=' + s.echoCancellation);
+  } catch (e) {
+    console.warn('[rec] applyConstraints failed (iOS may ignore these):', e);
+  }
+}
+
 // When the shared mic module is about to release the stream (e.g., the
 // persistent-mute auto-release fires), we need to stop the recorder and
 // clear our timers so the assembled blob is finalised cleanly. The shared
@@ -113,11 +150,13 @@ function startRecording() {
       if (!ok || gen !== _recGeneration) return; // stale — another startRecording fired
       // Play bell after mic acquired — AudioContext is resumed by acquireMic
       if (audioUnlocked && phase === 'work') playWorkStart();
+      _applyRecordingConstraints(); // strip iOS voice processing off the fresh track
       _scheduleBeginRec(gen);
     });
     return;
   }
   // mic already acquired — caller plays the bell synchronously before this.
+  _applyRecordingConstraints(); // re-assert constraints on the existing track
   _scheduleBeginRec(gen);
 }
 
@@ -135,13 +174,13 @@ function _beginRec() {
   if (!micStream) { console.warn('_beginRec: no micStream'); return; }
   try {
     // Web Audio bypass: route the mic through the shared (generic) AudioContext
-    // before recording. We acquire with plain `audio: true` (mic.js) — the
-    // explicit ec/ns/agc constraints made iOS duck the whole app's output, so
-    // they're gone. This bypass (source → gain → MediaStreamDestination) is now
-    // the SOLE voice-processing stripper for the recording: piping through the
-    // Web Audio graph can hand MediaRecorder a cleaner stream than the direct
-    // track. Deliberately uses the generic audioCtx, not a dedicated recording
-    // context — mic and app output share one context.
+    // before recording, applying the software boost gain (_recGainMult). This is a
+    // LEVEL stage ONLY — it does NOT remove iOS voice processing. NS/AGC/EC are
+    // applied at capture (inside the getUserMedia audio unit), upstream of this
+    // graph, so piping through Web Audio cannot un-suppress them; that job belongs
+    // to _applyRecordingConstraints() (applyConstraints on the track, called before
+    // we get here). Deliberately uses the generic audioCtx, not a dedicated
+    // recording context — mic and app output share one context.
     let recStream = micStream;
     if (typeof audioCtx !== 'undefined' && audioCtx && audioCtx.state !== 'closed') {
       try {
