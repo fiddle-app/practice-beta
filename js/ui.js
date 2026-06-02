@@ -964,6 +964,9 @@ async function openReview() {
   $('rev-dur').textContent = '...';
   $('rev-prog').style.width = '0%';
   $('rev-vol').value = parseFloat(settings.reviewVol) || 0.8;
+  const boostPct = parseInt(settings.recBoost, 10) || 400;
+  $('rev-boost').value = boostPct;
+  $('rev-boost-val').textContent = boostPct + '%';
   $('review-overlay').classList.add('open');
 
   try {
@@ -1022,6 +1025,12 @@ $('rev-wave').addEventListener('click', e => {
 
   overlay.addEventListener('pointerdown', e => {
     if (e.target.closest('button, input')) return;
+    // Only begin a scrub-drag from the waveform's bottom edge and upward.
+    // Everything below it is the controls + volume/boost sliders; a drag that
+    // started down there used to get captured as a scrub and fight the
+    // sliders. (Tap-to-jump on the waveform is a separate click handler and
+    // is unaffected.)
+    if (e.clientY > $('rev-wave').getBoundingClientRect().bottom) return;
     dragStartX     = e.clientX;
     lastDragX      = e.clientX;
     hasDragged     = false;
@@ -1120,6 +1129,15 @@ $('rev-vol').addEventListener('input', e => {
   const v = parseFloat(e.target.value);
   settings.reviewVol = v;
   if (reviewGain) reviewGain.gain.value = v;
+  saveSettings();
+});
+
+// Record-boost slider (percent). Applies to the NEXT recording — mic-recording.js
+// reads settings.recBoost at recording start — so there's no live node to poke here.
+$('rev-boost').addEventListener('input', e => {
+  const pct = parseInt(e.target.value, 10);
+  settings.recBoost = pct;
+  $('rev-boost-val').textContent = pct + '%';
   saveSettings();
 });
 

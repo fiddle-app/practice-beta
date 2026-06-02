@@ -5,7 +5,7 @@
 // =================================================
 // Release mic tracks between phases on Safari/iOS (so the mic indicator turns off).
 // On Chrome, keep the stream alive to avoid re-prompting each work phase.
-const BUILD_DATE = '2026-06-01 20:08';   // stamped automatically by deploy.sh — do not edit manually
+const BUILD_DATE = '2026-06-01 20:48';   // stamped automatically by deploy.sh — do not edit manually
 const IS_SAFARI  = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
 const DEFAULTS = {
@@ -22,6 +22,12 @@ const DEFAULTS = {
   breaksCountAsPractice: true,
   notifyVol:             0.35,
   reviewVol:             1.0,
+  // Software gain applied to NEW recordings, as a percentage (100 = 1.0×,
+  // no boost). iOS delivers the fiddle ~13 dB below full scale, so a large
+  // multiplier is normal here. Read at recording-start in mic-recording.js
+  // and divided by 100 to get the GainNode multiplier. Slider lives at the
+  // bottom of the review screen.
+  recBoost:              400,
   recording:             true,
   autoAdvance:           false,
   voiceCommands:         true,    // app-wide voice control when model is ready

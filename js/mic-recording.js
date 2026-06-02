@@ -35,6 +35,20 @@ let _recSrcNode    = null; // Web Audio bypass source node — disconnected on s
 // transient, which is acceptable.
 const RECORD_START_DELAY_MS = 500;
 
+// Software gain applied on the recording path, inside the Web Audio bypass
+// (createMediaStreamSource → gain → MediaStreamDestination). iOS delivers the
+// fiddle ~13 dB below full scale; measured 2026-06-01 off the review-screen
+// waveform, the loudest bow strokes sat at ~0.22 of full scale (peaks filling
+// only ~20% of the half-band). The boost is user-controlled via settings.recBoost
+// (a percentage — 400 = 4.0× = +12 dB, the default, which lands those peaks
+// near 0.9 / −1 dBFS). Read fresh at each recording start so the review-screen
+// slider applies to the NEXT round. The gain multiplies signal AND noise floor
+// equally — it cures quietness, not the scratch. 100% = passthrough.
+function _recGainMult() {
+  const pct = parseFloat(settings.recBoost);
+  return (isNaN(pct) ? 400 : pct) / 100;
+}
+
 // When the shared mic module is about to release the stream (e.g., the
 // persistent-mute auto-release fires), we need to stop the recorder and
 // clear our timers so the assembled blob is finalised cleanly. The shared
@@ -128,8 +142,11 @@ function _beginRec() {
     if (typeof audioCtx !== 'undefined' && audioCtx && audioCtx.state !== 'closed') {
       try {
         _recSrcNode = audioCtx.createMediaStreamSource(micStream);
+        const recGain = audioCtx.createGain();
+        recGain.gain.value = _recGainMult();
         const dest  = audioCtx.createMediaStreamDestination();
-        _recSrcNode.connect(dest);
+        _recSrcNode.connect(recGain);
+        recGain.connect(dest);
         recStream = dest.stream;
       } catch(e) {
         console.warn('[rec] web audio bypass failed, recording direct:', e);

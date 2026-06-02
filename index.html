@@ -11,8 +11,8 @@
 <meta name="theme-color" id="meta-theme" content="#0d0d0d">
 <!-- Stamped by scripts/deploy.sh — used by the inline version-coherence
      check below to detect a hybrid-cache state at launch. Source ships
-     with 2026-06-01 20:08 as the literal placeholder. -->
-<meta name="microbreaker-build" content="2026-06-01 20:08">
+     with 2026-06-01 20:48 as the literal placeholder. -->
+<meta name="microbreaker-build" content="2026-06-01 20:48">
 <!-- PWA home-screen icon. MUST be a real PNG file reference — iOS Safari
      "Add to Home Screen" does not reliably accept data: URLs or JS-generated
      canvas icons. If you change this, test on iPad Safari: Share → Add to
@@ -228,7 +228,7 @@
   var current = (meta && meta.content) || null;
   // Treat the unstamped placeholder as no-info (running source uncompiled).
   // The placeholder string is built from string concatenation so the
-  // deploy.sh sed pass on this file (which replaces 2026-06-01 20:08 with
+  // deploy.sh sed pass on this file (which replaces 2026-06-01 20:48 with
   // the actual build) cannot match it as a contiguous substring. If we
   // wrote the literal here, sed would replace this check itself, turning
   // it into "if current === <build>" — i.e., treating every clean deploy
@@ -1059,7 +1059,18 @@ Order: Sequential
     </div>
   </div>
   <div id="rev-spacer-bottom"></div>
-  <div id="rev-hint">Tap waveform to jump.<br>Drag anywhere to scrub.<br>Press [ENTER] to close.</div>
+  <div id="rev-hint">Tap waveform to jump.<br>Drag waveform to scrub.<br>Press [ENTER] to close.</div>
+  <div id="rev-boost-wrap">
+    <div id="rev-boost-head">
+      <svg id="rev-boost-icon" width="22" height="22" viewBox="0 0 24 24" fill="none">
+        <path d="M12 14.5a3 3 0 0 0 3-3V5.5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3z" fill="rgba(255,255,255,0.72)"></path>
+        <path d="M17.5 11.5a5.5 5.5 0 0 1-11 0M12 17v3.5M8.5 20.5h7" stroke="rgba(255,255,255,0.72)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+      </svg>
+      <span id="rev-boost-label">Boost for new recordings</span>
+      <span id="rev-boost-val">400%</span>
+    </div>
+    <input type="range" id="rev-boost" min="100" max="800" step="25" value="400">
+  </div>
 </div>
 
 <!-- Debug panel — surfaced via #debug URL fragment. Inline HTML + inline
