@@ -68,10 +68,20 @@ function _recGainMult() {
 // recording session is active, voice recognition runs without noise suppression too.
 // Fire-and-forget: the RECORD_START_DELAY_MS gap before _beginRec covers the
 // renegotiation, and the constraints persist on the track for the ongoing capture.
+//
+// _sessType() reads the iOS audio-session category we last set (what
+// navigator.audioSession reports — NOT the hardware volume rail, which iOS does
+// not expose to JS). Diagnostic only, for the rail investigation.
+function _sessType() {
+  try { return (navigator.audioSession && navigator.audioSession.type) || 'n/a'; }
+  catch (_) { return 'err'; }
+}
+
 async function _applyRecordingConstraints() {
   if (!micStream) return;
   const track = micStream.getAudioTracks()[0];
   if (!track || typeof track.applyConstraints !== 'function') return;
+  console.log('[rec] session pre-constraints type=' + _sessType());
   try {
     await track.applyConstraints({
       echoCancellation: false,
@@ -80,7 +90,8 @@ async function _applyRecordingConstraints() {
     });
     const s = (typeof track.getSettings === 'function') ? track.getSettings() : {};
     console.log('[rec] applyConstraints ok — readback ns=' + s.noiseSuppression +
-                ' agc=' + s.autoGainControl + ' ec=' + s.echoCancellation);
+                ' agc=' + s.autoGainControl + ' ec=' + s.echoCancellation +
+                ' — session post-constraints type=' + _sessType());
   } catch (e) {
     console.warn('[rec] applyConstraints failed (iOS may ignore these):', e);
   }
@@ -211,6 +222,7 @@ function _beginRec() {
       }
     };
     mr.start(250);
+    console.log('[rec] session @ record-start type=' + _sessType());
     // Configurable cap (settings.maxRecDur, seconds). Fallback 600s
     // matches the prior hardcoded 10-minute behavior.
     const capSec = (settings.maxRecDur || 600);
