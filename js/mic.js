@@ -55,28 +55,34 @@ async function acquireMic() {
       if (navigator.audioSession) {
         try { navigator.audioSession.type = 'play-and-record'; } catch(e){}
       }
-      // On iOS/Safari: use browser defaults (audio: true). iOS never implements
-      // noiseSuppression regardless of the constraint flag, so NS artifacts are
-      // not a concern. AGC remains active and provides the level boost needed for
-      // a phone mic placed at instrument distance — without it the recording is
-      // too quiet. echoCancellation in a solo practice room (no speaker output
-      // feeding back) causes no audible harm.
-      //
-      // On desktop Chrome/Firefox: disable all three voice-processing flags.
-      // Chrome and Firefox implement real NS which treats sustained instrument
-      // harmonics as noise and creates spectral artifacts. Their AGC also causes
-      // pump distortion on bow attacks. Equivalent to Zoom's "Original Sound."
-      // A software gain boost in mic-recording.js compensates for the missing AGC.
-      //
-      // IS_SAFARI is set in settings.js (covers iOS Safari + macOS Safari +
-      // Capacitor WKWebView — all WebKit-based surfaces).
-      const _audioConstraints = (typeof IS_SAFARI !== 'undefined' && IS_SAFARI)
-        ? true
-        : { echoCancellation: false, noiseSuppression: false, autoGainControl: false };
+      // Explicitly disable all voice-processing layers. audio:true lets iOS
+      // default to "Voice" mode (VPIO) which applies NS/AGC/EC regardless of
+      // intent. latency:0 hints for the lowest-latency audio path, which on
+      // some iOS versions avoids the voice-processing audio unit entirely.
       micStream = await navigator.mediaDevices.getUserMedia({
-        audio: _audioConstraints,
+        audio: {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false,
+          latency: 0,
+          channelCount: 1,
+          sampleRate: 48000,
+        },
         video: false
       });
+      // Verify iOS honored the constraints; re-apply if not.
+      const _t = micStream.getAudioTracks()[0];
+      if (_t) {
+        try {
+          const _s = _t.getSettings();
+          if (_s.echoCancellation || _s.noiseSuppression) {
+            console.warn('[mic] constraints not honored, re-applying...');
+            await _t.applyConstraints({
+              echoCancellation: false, noiseSuppression: false, autoGainControl: false
+            });
+          }
+        } catch(e) {}
+      }
       const tracks = micStream.getAudioTracks();
       console.log('[mic] acquired tracks=' + tracks.length +
                   ' visible=' + (document.visibilityState === 'visible'));

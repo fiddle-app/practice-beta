@@ -25,6 +25,7 @@ let reviewBlob    = null;
 let recCapTimer   = null;
 let recPendingTimer = null;
 let _recGeneration  = 0; // incremented on every startRecording; stale async paths bail
+let _recSrcNode    = null; // Web Audio bypass source node — disconnected on stop
 
 // Delay between the round-start bell firing and the MediaRecorder actually
 // starting. The bell (playWorkStart) is A5 with a 2.5s exponential decay,
@@ -119,7 +120,23 @@ function _scheduleBeginRec(gen) {
 function _beginRec() {
   if (!micStream) { console.warn('_beginRec: no micStream'); return; }
   try {
-    const mr = new MediaRecorder(micStream);
+    // Web Audio bypass: route mic through AudioContext before recording.
+    // Piping through the Web Audio graph (source → destination, no processing
+    // nodes) can strip iOS system voice processing that survives getUserMedia
+    // constraints, delivering a cleaner stream to MediaRecorder.
+    let recStream = micStream;
+    if (typeof audioCtx !== 'undefined' && audioCtx && audioCtx.state !== 'closed') {
+      try {
+        _recSrcNode = audioCtx.createMediaStreamSource(micStream);
+        const dest  = audioCtx.createMediaStreamDestination();
+        _recSrcNode.connect(dest);
+        recStream = dest.stream;
+      } catch(e) {
+        console.warn('[rec] web audio bypass failed, recording direct:', e);
+        _recSrcNode = null;
+      }
+    }
+    const mr = new MediaRecorder(recStream);
     mediaRecorder = mr;
     mr.ondataavailable = e => { if (e.data?.size > 0) recChunks.push(e.data); };
     mr.onstop = () => {
@@ -167,6 +184,7 @@ function stopRecording() {
     try { mediaRecorder.stop(); } catch(e) {}
   }
   mediaRecorder = null;
+  if (_recSrcNode) { try { _recSrcNode.disconnect(); } catch(e) {} _recSrcNode = null; }
   // Keep micStream alive across phases on all browsers.
   // Previously we stopped tracks on Safari to clear the mic indicator, but
   // iOS can re-prompt for mic permission if the stream is released — even
