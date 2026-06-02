@@ -7,10 +7,9 @@
 // =================================================
 
 // Resolver consumed by _shared/js/audio-ctx.js. Returns the initial
-// master-gain value used by ensureAudio and unmuteMasterGain. Matches
-// the shared module's historical default — keeps current behaviour. The
-// 0.8x attenuation lives in updateMasterGain below (settings-driven
-// writes only) so we don't change the initial-boot loudness here.
+// master-gain value used by ensureAudio and unmuteMasterGain, and now
+// also by updateMasterGain (settings-driven writes) so boot and slider
+// writes resolve to the identical gain — no boot-vs-write asymmetry.
 function getMasterGainForSettings() {
   return (parseFloat(settings.notifyVol) || 0.35) / 0.35;
 }
@@ -31,8 +30,15 @@ function appWantsMic() {
 
 function updateMasterGain() {
   if (masterGain) {
-    // Global 0.8x attenuation — every sound is 20% quieter than the per-sound gains imply.
-    masterGain.gain.value = ((parseFloat(settings.notifyVol) || 0.35) / 0.35) * 0.8;
+    // Mirror the boot resolver EXACTLY. Previously this applied an extra
+    // 0.8x (-1.9 dB) headroom haircut that the boot path lacked, so the app
+    // got ~20% quieter the moment the user first touched the volume slider
+    // and stayed there. That global cut was almost certainly a clipping
+    // guard for overlapping/loud notification sounds — removed 2026-06-02
+    // per Casey. If overlap clipping resurfaces at max volume, fix it with
+    // a limiter or lower per-sound gains, not a global haircut that also
+    // kills normal loudness.
+    masterGain.gain.value = getMasterGainForSettings();
   }
 }
 

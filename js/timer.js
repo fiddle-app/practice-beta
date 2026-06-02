@@ -53,11 +53,14 @@ function _enterPhase(p) {
 
   if (p === 'work') {
     phaseTimeLeft = getDur('workDur');
-    // Play the bell first, then start recording — recorder is deferred inside
-    // startRecording() so the bell tail isn't captured. If mic isn't yet
-    // acquired, the bell plays inside the acquireMic promise after ctx resumes.
-    const _hadMic = !!micStream;
-    if (audioUnlocked && _hadMic) playWorkStart();
+    // Round-start bell. Play it synchronously here whenever we can. The one
+    // case we defer is "recording on but mic not yet acquired" — then
+    // startRecording() plays the bell inside its acquireMic promise instead,
+    // so it fires after the AudioContext is re-resumed and the bell tail isn't
+    // captured. When recording is OFF the mic is never acquired, so we must NOT
+    // gate the bell on mic state — doing so silently drops the round-start bell.
+    const _deferBellToRec = settings.recording && !micStream;
+    if (audioUnlocked && !_deferBellToRec) playWorkStart();
     startRecording();
   } else if (p === 'break') {
     phaseTimeLeft = getDur('breakDur');

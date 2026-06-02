@@ -134,10 +134,14 @@ function _scheduleBeginRec(gen) {
 function _beginRec() {
   if (!micStream) { console.warn('_beginRec: no micStream'); return; }
   try {
-    // Web Audio bypass: route mic through AudioContext before recording.
-    // Piping through the Web Audio graph (source → destination, no processing
-    // nodes) can strip iOS system voice processing that survives getUserMedia
-    // constraints, delivering a cleaner stream to MediaRecorder.
+    // Web Audio bypass: route the mic through the shared (generic) AudioContext
+    // before recording. We acquire with plain `audio: true` (mic.js) — the
+    // explicit ec/ns/agc constraints made iOS duck the whole app's output, so
+    // they're gone. This bypass (source → gain → MediaStreamDestination) is now
+    // the SOLE voice-processing stripper for the recording: piping through the
+    // Web Audio graph can hand MediaRecorder a cleaner stream than the direct
+    // track. Deliberately uses the generic audioCtx, not a dedicated recording
+    // context — mic and app output share one context.
     let recStream = micStream;
     if (typeof audioCtx !== 'undefined' && audioCtx && audioCtx.state !== 'closed') {
       try {
