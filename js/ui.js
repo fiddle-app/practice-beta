@@ -606,30 +606,11 @@ if ($('diag-log-copy')) {
     const btn = ev.currentTarget;
     const text = $('diag-log-display').textContent || '';
     const orig = btn.textContent;
-    try {
-      // navigator.clipboard.writeText requires a secure context (HTTPS) and
-      // a user-gesture stack — a button click satisfies both. iOS Safari
-      // 13.4+ supports it.
-      await navigator.clipboard.writeText(text);
-      btn.textContent = 'Copied!';
-    } catch (e) {
-      // Fallback: select + execCommand. Works on older iOS too. We use a
-      // hidden textarea because <pre> selection is finicky inside an
-      // overlay with pointer-events tricks.
-      try {
-        const ta = document.createElement('textarea');
-        ta.value = text;
-        ta.style.position = 'fixed';
-        ta.style.opacity  = '0';
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand('copy');
-        document.body.removeChild(ta);
-        btn.textContent = 'Copied!';
-      } catch (_) {
-        btn.textContent = 'Copy failed';
-      }
-    }
+    // copyPlainText (shared _shared/js/clipboard.js) copies plain text only via
+    // the execCommand path — same mechanism that already kept this button clean,
+    // now unified so the routine copy gets the same iOS-safe behavior.
+    const ok = await copyPlainText(text);
+    btn.textContent = ok ? 'Copied!' : 'Copy failed';
     setTimeout(() => { btn.textContent = orig; }, 1400);
   });
 }
