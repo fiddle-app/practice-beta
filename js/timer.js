@@ -55,7 +55,7 @@ function _enterPhase(p) {
   render();
 
   if (p === 'work') {
-    phaseTimeLeft = getDur('workDur');
+    phaseTimeLeft = _roundDuration();
     // Round-start bell. Play it synchronously here whenever we can. The one
     // case we defer is "recording on but mic not yet acquired" — then
     // startRecording() plays the bell inside its acquireMic promise instead,
@@ -87,6 +87,35 @@ function _enterPhase(p) {
   render();
 }
 
+// Below this many seconds left in the chunk budget, we don't start another round —
+// the chunk is treated as finished and we go straight to rest (as if the final
+// micro-break had ended).
+const CHUNK_END_THRESHOLD = 15;
+
+// Seconds of chunk budget still unspent.
+function _chunkRemaining() {
+  return getDur('chunkDur') - practiceTime;
+}
+
+// Duration of the next practice round. Never longer than the chunk's remaining
+// budget, so a round can't run past the chunk — and if the round time exceeds the
+// whole chunk, the round becomes a chunk-length countdown (one round, one
+// micro-break, done).
+function _roundDuration() {
+  return Math.max(0, Math.min(getDur('workDur'), _chunkRemaining()));
+}
+
+// End the current chunk: save its summary stats and go to the rest screen.
+function _finishChunkToRest() {
+  lastPracticeTime = practiceTime;
+  lastChunkElapsed = chunkStartTime ? (Date.now() - chunkStartTime) / 1000 : 0;
+  lastChunkDur     = getDur('chunkDur');
+  stopRecording();
+  if (audioUnlocked) playFinalGong();
+  lastTickTime = null;
+  _enterPhase('rest-count');
+}
+
 function _advance(force) {
   // force=true: user manually skipped — always transition.
   // force=false: timer expired naturally — autoAdvance only applies to work phase.
@@ -104,15 +133,13 @@ function _advance(force) {
     if (audioUnlocked) playBreakStart();
     _enterPhase('break');
   } else if (phase === 'break') {
-    if (practiceTime >= getDur('chunkDur')) {
-      // Chunk budget reached — save summary stats before entering rest
-      lastPracticeTime = practiceTime;
-      lastChunkElapsed = chunkStartTime ? (Date.now() - chunkStartTime) / 1000 : 0;
-      lastChunkDur     = getDur('chunkDur');
-      stopRecording();
-      if (audioUnlocked) playFinalGong();
-      lastTickTime = null;
-      _enterPhase('rest-count');
+    // About to begin the next practice round: if less than CHUNK_END_THRESHOLD
+    // seconds of budget remain, treat the chunk as finished and go to rest. Else
+    // start the round — _enterPhase('work') caps its timer at the remaining budget.
+    // The chunk-ending transition fires regardless of autoAdvance (same as the old
+    // practiceTime>=chunkDur gate); manual-advance only gates the work↔break loop.
+    if (_chunkRemaining() < CHUNK_END_THRESHOLD) {
+      _finishChunkToRest();
     } else {
       if (!workAuto) {
         // Wait for user to tap before starting next round
@@ -149,8 +176,9 @@ function restartPhase() {
     cntFired = {3:false, 2:false, 1:false};
     isPaused = false; lastTickTime = null; render(); return;
   }
-  const phaseDur = phase === 'work' ? getDur('workDur') : getDur('breakDur');
-  phaseTimeLeft = phaseDur;
+  // Work restarts to a round capped at the chunk's remaining budget (same rule as
+  // entering work); break restarts to the full micro-break.
+  phaseTimeLeft = phase === 'work' ? _roundDuration() : getDur('breakDur');
   cntFired = {3:false, 2:false, 1:false};
   if (phase === 'work') { stopRecording(); startRecording(); }
   isPaused = false; lastTickTime = null; render();

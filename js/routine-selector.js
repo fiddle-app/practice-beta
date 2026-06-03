@@ -217,13 +217,30 @@ function _routineToText(routine) {
     lines.push('Order: ' + (orderMap[routine.order] || 'Sequential'));
   }
 
+  // Routine-level time overrides (optional). Null/undefined = inherit settings.
+  if (routine.workDur  != null) lines.push('Practice Round: ' + _fmtTime(routine.workDur));
+  if (routine.breakDur != null) lines.push('Microbreak: '     + _fmtTime(routine.breakDur));
+  if (routine.restDur  != null) lines.push('Rest: '           + _fmtTime(routine.restDur));
+
+  // Whole-routine prompts (optional). Conventionally placed after Order.
+  if (routine.overallGoal)          lines.push('Overall Goal: ' + routine.overallGoal);
+  if (routine.overallRetrospective) lines.push('Overall Retrospective: ' + routine.overallRetrospective);
+
   routine.chunks.forEach(chunk => {
     // Build the positional time prefix: chunkTime, practiceTime, microbreakTime,
     // restTime. Emit a contiguous prefix up to the last specified value — a
     // positional list can't have holes, so an interior null below a specified
-    // value is backfilled with the matching global default (its effective value).
+    // value is backfilled with its EFFECTIVE value: the routine-level override if
+    // the routine sets one, otherwise the user's global default. (Using settings
+    // alone would drop the routine's override when round-tripping a chunk that has
+    // a gap, e.g. a set microbreakTime above a null practiceTime.)
     const raw     = [chunk.chunkTime, chunk.practiceTime, chunk.microbreakTime, chunk.restTime];
-    const globals = [settings.chunkDur, settings.workDur, settings.breakDur, settings.restDur];
+    const globals = [
+      settings.chunkDur,
+      routine.workDur  != null ? routine.workDur  : settings.workDur,
+      routine.breakDur != null ? routine.breakDur : settings.breakDur,
+      routine.restDur  != null ? routine.restDur  : settings.restDur,
+    ];
     let lastIdx = -1;
     for (let k = 0; k < 4; k++) if (raw[k] !== null && raw[k] !== undefined) lastIdx = k;
     const times = [];

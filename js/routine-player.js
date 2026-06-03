@@ -7,15 +7,20 @@
 // timer.js calls getDur(key) instead of settings[key] directly,
 // so this module can shadow individual duration values per chunk.
 
-let _activeRoutine   = null;
-let _activeChunk     = null;   // {subject, goal, strategy, retrospectiveQ, ...}
-let _chunkSequence   = [];     // array of chunk indices in play order
-let _sequenceIndex   = 0;
-let _chunkOverrides  = {};     // keys: chunkDur, workDur, breakDur, restDur
+let _activeRoutine    = null;
+let _activeChunk      = null;   // {subject, goal, strategy, retrospectiveQ, ...}
+let _chunkSequence    = [];     // array of chunk indices in play order
+let _sequenceIndex    = 0;
+let _chunkOverrides   = {};     // per-chunk: chunkDur, workDur, breakDur, restDur
+let _routineOverrides = {};     // routine-wide: workDur, breakDur, restDur
 
-// Called by timer.js instead of settings[key] directly
+// Called by timer.js instead of settings[key] directly. Precedence (most specific
+// first): this chunk's positional time → the routine's global override → the
+// user's settings default.
 function getDur(key) {
-  return (_chunkOverrides[key] !== undefined) ? _chunkOverrides[key] : settings[key];
+  if (_chunkOverrides[key]   !== undefined) return _chunkOverrides[key];
+  if (_routineOverrides[key] !== undefined) return _routineOverrides[key];
+  return settings[key];
 }
 
 // Called by render.js to get current chunk metadata
@@ -27,12 +32,28 @@ function getActiveRoutine() {
   return _activeRoutine;
 }
 
+// Position of the currently-armed chunk within the play sequence. _sequenceIndex
+// is incremented when a chunk is armed (see nextChunk), so it is 1 for the first
+// chunk and equals _chunkSequence.length for the last. Used by render.js to show
+// a routine's Overall Goal only on the first chunk's ready screen and its Overall
+// Retrospective only on the final rest.
+function isFirstChunkActive() {
+  return !!_activeRoutine && _sequenceIndex === 1;
+}
+// True while the LAST chunk is the armed chunk — i.e. its ready screen, work,
+// break, AND the final rest after it. render.js only consults it on the rest
+// screen, where it uniquely identifies the routine's final rest.
+function isLastChunkActive() {
+  return !!_activeRoutine && _chunkSequence.length > 0 && _sequenceIndex === _chunkSequence.length;
+}
+
 function clearActiveRoutine() {
-  _activeRoutine  = null;
-  _activeChunk    = null;
-  _chunkSequence  = [];
-  _sequenceIndex  = 0;
-  _chunkOverrides = {};
+  _activeRoutine    = null;
+  _activeChunk      = null;
+  _chunkSequence    = [];
+  _sequenceIndex    = 0;
+  _chunkOverrides   = {};
+  _routineOverrides = {};
 }
 
 function _buildSequence(routine) {
@@ -81,6 +102,12 @@ function nextChunk() {
 // Entry point: called when user selects a routine from the selector modal
 function startRoutine(routine) {
   _activeRoutine  = routine;
+  // Routine-wide time overrides (null = inherit settings). Only include the keys
+  // the routine actually sets, so getDur falls through to settings for the rest.
+  _routineOverrides = {};
+  if (routine.workDur  != null) _routineOverrides.workDur  = routine.workDur;
+  if (routine.breakDur != null) _routineOverrides.breakDur = routine.breakDur;
+  if (routine.restDur  != null) _routineOverrides.restDur  = routine.restDur;
   _chunkSequence  = _buildSequence(routine);
   _sequenceIndex  = 0;
   nextChunk(); // arms overrides + _activeChunk for the first chunk

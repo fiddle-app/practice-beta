@@ -161,6 +161,33 @@ const DEFAULT_ROUTINES = [
         'Did the spiccato stay even as the tempo climbed?'),
     ],
   },
+  {
+    // Same subjects as Example Daily, but with no per-chunk goal/strategy/retro —
+    // instead a single Overall Goal (shown on the first chunk's start screen) and
+    // Overall Retrospective (shown on the final rest). Chunk practice sums to
+    // 26.5 min; with the routine's own 30s rests between the 8 rounds it runs
+    // ~30 min. The workDur/breakDur/restDur overrides make it fully self-contained
+    // (it ignores whatever the user has set in their own settings). Goal /
+    // retrospective grounded in practice pedagogy (Gebrian).
+    id: 'r-example-daily-overall',
+    name: 'Example Daily Overall',
+    order: 'sequential',
+    workDur:              60,   // Practice Round 1:00
+    breakDur:             15,   // Microbreak 0:15
+    restDur:              30,   // Rest 0:30
+    overallGoal:          'Slow mindful reps, ear leading intonation',
+    overallRetrospective: 'Where did focused listening sharpen your intonation most?',
+    chunks: [
+      _ck(240, 'Major scale',  '', '', ''),
+      _ck(240, 'Arpeggios',    '', '', ''),
+      _ck(180, 'Shifting',     '', '', ''),
+      _ck(180, 'Major scale',  '', '', ''),
+      _ck(240, 'Double stops', '', '', ''),
+      _ck(180, 'Arpeggios',    '', '', ''),
+      _ck(180, 'Shifting',     '', '', ''),
+      _ck(150, 'Double stops', '', '', ''),
+    ],
+  },
 ];
 
 // Install the default routines on a fresh install or post-Hard-reset boot. No-op

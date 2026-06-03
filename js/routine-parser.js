@@ -9,7 +9,17 @@
 // Format:
 //   Name: {name}
 //   [Order: {Sequential | Random}]
+//   [Overall Goal: {whole-routine goal, shown at the start}]
+//   [Overall Retrospective: {whole-routine question, shown at the very end}]
+//   [Practice Round: {time}]   — routine-wide override for the round length
+//   [Microbreak: {time}]       — routine-wide override for the micro-break
+//   [Rest: {time}]             — routine-wide override for the rest length
 //   {chunkTime}[, {practiceTime}[, {microbreakTime}[, {restTime}]]] {subject}[; {goal}][; {strategy}][; {retrospectiveQ}]
+//
+// Header keywords (Name/Order/Overall Goal/Overall Retrospective/Practice Round/
+// Microbreak/Rest) may appear in any order, anywhere among the lines; only their
+// first occurrence is kept. The routine-level times override the user's global
+// settings for this routine; a chunk's own positional time still wins over them.
 //
 // Times are POSITIONAL: chunkTime first, then optionally practiceTime,
 // microbreakTime, restTime — each specifiable only if all earlier ones are. A
@@ -44,10 +54,18 @@ function parseTime(token) {
 function parseRoutineText(text) {
   const errors = [];
   const routine = {
-    id:        null,
-    name:      '',
-    order:     'sequential',
-    chunks:    [],
+    id:                   null,
+    name:                 '',
+    order:                'sequential',
+    overallGoal:          '',   // whole-routine goal, shown at the start (first chunk ready)
+    overallRetrospective: '',   // whole-routine question, shown at the very end (final rest)
+    // Routine-level time overrides (null = inherit the user's settings). They make
+    // a routine self-contained: a chunk's own positional time still wins, then
+    // these, then the user's global settings. See getDur() in routine-player.js.
+    workDur:              null,  // "Practice Round:" — length of each practice round
+    breakDur:             null,  // "Microbreak:"     — micro-break between rounds
+    restDur:              null,  // "Rest:"           — rest after each chunk
+    chunks:               [],
   };
 
   let hasName      = false;
@@ -83,6 +101,38 @@ function parseRoutineText(text) {
         errors.push(`Line ${lineNum}: Did not recognize Order value "${line.slice(6).trim()}". Use Sequential or Random.`);
       }
       continue;
+    }
+
+    // Overall Goal: — whole-routine goal, shown at the start (first chunk ready).
+    {
+      const m = line.match(/^Overall Goal:\s*(.*)$/i);
+      if (m) { routine.overallGoal = m[1].trim(); continue; }
+    }
+
+    // Overall Retrospective: — whole-routine question, shown at the very end
+    // (the final rest, after the last chunk).
+    {
+      const m = line.match(/^Overall Retrospective:\s*(.*)$/i);
+      if (m) { routine.overallRetrospective = m[1].trim(); continue; }
+    }
+
+    // Routine-level time overrides. Same time format as chunk times (M:SS, :SS,
+    // integer minutes, decimal). "Microbreak" also accepts "Micro-break".
+    {
+      const m = line.match(/^(Practice Round|Micro-?break|Rest)\s*:\s*(.*)$/i);
+      if (m) {
+        const key = m[1].toLowerCase().replace(/-/g, '');
+        const field = key.startsWith('practice') ? 'workDur' : key === 'rest' ? 'restDur' : 'breakDur';
+        const val = m[2].trim();
+        if (val !== '') {           // empty value = leave null (inherit settings)
+          const t = parseTime(val);
+          // Must be a real, positive duration — a 0s round/break/rest is invalid
+          // (it would produce zero-length phases).
+          if (t === null || t <= 0) errors.push(`Line ${lineNum}: "${m[1]}" needs a time greater than zero (got "${val}").`);
+          else                      routine[field] = t;
+        }
+        continue;
+      }
     }
 
     // Unrecognized keyword (word followed by colon, no spaces before colon)
@@ -123,6 +173,7 @@ function parseRoutineText(text) {
       continue;
     }
 
+    const errCountBefore = errors.length;
     const times = timeTokens.map(tok => {
       const t = parseTime(tok);
       if (t === null) {
@@ -131,7 +182,10 @@ function parseRoutineText(text) {
       return t;
     });
 
-    if (errors.length) continue; // skip if time parse failed on this line
+    // Skip this chunk only if THIS line's time parse failed — compare against the
+    // pre-line count, not errors.length (which would also skip every later valid
+    // chunk once any earlier line had erred, then falsely report "no chunks").
+    if (errors.length > errCountBefore) continue;
 
     const chunk = {
       subject,

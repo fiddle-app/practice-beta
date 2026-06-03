@@ -95,32 +95,50 @@ function render() {
     $('chunk-strategy').style.display = activeChunk.strategy ? '' : 'none';
   }
 
-  // Rest questions. On the READY screen they now coexist WITH chunk-info: the
-  // chunk-info block renders directly above them (DOM order in #mid-zone), so the
-  // user sees the routine's subject/goal/strategy AND still gets the reflective
-  // prompts below. On work/break the questions stay hidden (chunk-info owns that
-  // space); on rest, chunk-info is hidden and the questions show alone. So the
-  // condition is simply (isReady || isRest) regardless of showChunkInfo.
-  elRestQ.style.display = (isReady || isRest) ? 'flex' : 'none';
-  if (isReady || isRest) {
-    const ps = elRestQ.querySelectorAll('p');
-    const q  = isRest
-      ? (settings.restQClose || ['', '']).concat([''])
-      : (settings.restQ     || ['', '', '']);
-    for (let i = 0; i < 3; i++) {
-      if (ps[i]) { ps[i].textContent = q[i] || ''; ps[i].style.display = q[i] ? '' : 'none'; }
+  // Reflective prompts (#rest-questions, the warm/orange text). Shown on the
+  // READY screen (opening prompts, coexisting above chunk-info in #mid-zone) and
+  // on the REST screen (closing prompts). Hidden on work/break.
+  //
+  // A routine may define whole-routine prompts that override the generic ones:
+  //   - Overall Goal replaces the opening questions and shows ONLY on the first
+  //     chunk's ready screen; later chunks' ready screens then show no prompts.
+  //   - Overall Retrospective replaces the closing questions and shows ONLY on
+  //     the final rest (after the last chunk); earlier rests show no prompts.
+  // So a routine with both shows the warm prompts exactly twice — the overall
+  // goal at the very start and the overall retrospective at the very end.
+  const activeRoutine = (typeof getActiveRoutine === 'function') ? getActiveRoutine() : null;
+  const overallGoal   = activeRoutine && activeRoutine.overallGoal;
+  const overallRetro  = activeRoutine && activeRoutine.overallRetrospective;
+  const onFirstChunk  = (typeof isFirstChunkActive === 'function') && isFirstChunkActive();
+  const onLastChunk   = (typeof isLastChunkActive  === 'function') && isLastChunkActive();
+
+  let restQLines = null; // null → hide #rest-questions entirely
+  if (isReady) {
+    if (overallGoal) restQLines = onFirstChunk ? [overallGoal] : null;
+    else             restQLines = settings.restQ || ['', '', ''];
+  } else if (isRest) {
+    if (overallRetro) {
+      restQLines = onLastChunk ? [overallRetro] : null;
+    } else if (activeChunk && activeChunk.retrospectiveQ) {
+      const closeQs = settings.restQClose || ['', ''];
+      restQLines = [activeChunk.retrospectiveQ, closeQs[1] || '', ''];
+    } else {
+      restQLines = (settings.restQClose || ['', '']).concat(['']);
     }
   }
 
-  // Retrospective question on rest screen (overrides restQClose[0] when set)
-  if (isRest && activeChunk && activeChunk.retrospectiveQ) {
+  if (restQLines) {
     elRestQ.style.display = 'flex';
     const ps = elRestQ.querySelectorAll('p');
-    const closeQs = settings.restQClose || ['', ''];
-    const qs = [activeChunk.retrospectiveQ, closeQs[1] || '', ''];
     for (let i = 0; i < 3; i++) {
-      if (ps[i]) { ps[i].textContent = qs[i] || ''; ps[i].style.display = qs[i] ? '' : 'none'; }
+      if (ps[i]) {
+        const txt = restQLines[i] || '';
+        ps[i].textContent = txt;
+        ps[i].style.display = txt ? '' : 'none';
+      }
     }
+  } else {
+    elRestQ.style.display = 'none';
   }
 
   // Chunk summary (shown on ready screen after first chunk completes)

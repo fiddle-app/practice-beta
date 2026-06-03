@@ -11,8 +11,8 @@
 <meta name="theme-color" id="meta-theme" content="#0d0d0d">
 <!-- Stamped by scripts/deploy.sh — used by the inline version-coherence
      check below to detect a hybrid-cache state at launch. Source ships
-     with 2026-06-03 15:53 as the literal placeholder. -->
-<meta name="microbreaker-build" content="2026-06-03 15:53">
+     with 2026-06-03 16:44 as the literal placeholder. -->
+<meta name="microbreaker-build" content="2026-06-03 16:44">
 <!-- PWA home-screen icon. MUST be a real PNG file reference — iOS Safari
      "Add to Home Screen" does not reliably accept data: URLs or JS-generated
      canvas icons. If you change this, test on iPad Safari: Share → Add to
@@ -228,7 +228,7 @@
   var current = (meta && meta.content) || null;
   // Treat the unstamped placeholder as no-info (running source uncompiled).
   // The placeholder string is built from string concatenation so the
-  // deploy.sh sed pass on this file (which replaces 2026-06-03 15:53 with
+  // deploy.sh sed pass on this file (which replaces 2026-06-03 16:44 with
   // the actual build) cannot match it as a contiguous substring. If we
   // wrote the literal here, sed would replace this check itself, turning
   // it into "if current === <build>" — i.e., treating every clean deploy
@@ -1012,10 +1012,15 @@ if (window._mbShowUpgradeModal) window._mbShowUpgradeModal(window._mbUpgrade);
       <summary>Format guide ▸</summary>
       <pre class="re-guidance-text">Name: {name}
 Order: Sequential | Random
+Overall Goal: {whole-routine goal}
+Overall Retrospective: {question for the end}
+Practice Round: {time}   Microbreak: {time}   Rest: {time}
 <span class="fg-key">chunkTime</span>, roundTime  <span class="fg-key">subject</span>; goal; strategy; retrospective question</pre>
       <div class="re-guidance-note">
         <p>Only the <span class="fg-key">chunkTime</span> and <span class="fg-key">subject</span> are required!</p>
         <p>If you don't specify the order, "sequential" is the default.</p>
+        <p>Overall Goal shows on the start screen, Overall Retrospective at the very end — both optional.</p>
+        <p>Practice Round / Microbreak / Rest set those times for the whole routine, overriding your settings.</p>
       </div>
       <div class="re-guidance-eg-label">Example</div>
       <pre class="re-guidance-eg">Name: Daily Drills
