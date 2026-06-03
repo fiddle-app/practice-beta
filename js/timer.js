@@ -20,7 +20,6 @@ let lastChunkDur     = 0;   // settings.chunkDur at chunk end — for REST summa
 
 let cntFired        = {3:false, 2:false, 1:false};
 let milestonesFired = {1:false, 2:false, 3:false};
-let msgIndex   = 0;
 let lastTickTime = null;
 let rafId        = null;
 
@@ -69,7 +68,6 @@ function _enterPhase(p) {
   } else if (p === 'break') {
     phaseTimeLeft = getDur('breakDur');
     stopRecording();
-    msgIndex = (msgIndex + 1) % Math.max(1, settings.messages.length);
     // playBreakStart() is called by _advance() before entering this phase
   } else if (p === 'rest-count') {
     // Break is the only phase where review-btn is reachable (render.js

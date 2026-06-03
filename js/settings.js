@@ -5,14 +5,14 @@
 // =================================================
 // Release mic tracks between phases on Safari/iOS (so the mic indicator turns off).
 // On Chrome, keep the stream alive to avoid re-prompting each work phase.
-const BUILD_DATE = '2026-06-03 14:27';   // stamped automatically by deploy.sh — do not edit manually
+const BUILD_DATE = '2026-06-03 15:53';   // stamped automatically by deploy.sh — do not edit manually
 const IS_SAFARI  = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
 const DEFAULTS = {
   workDur:               45,
   breakDur:              15,
   chunkDur:              300,
-  restDur:               90,
+  restDur:               30,
   // Maximum recording length per round, in seconds. Caps the MediaRecorder
   // so a forgotten/runaway recording can't accumulate unbounded memory.
   // Default 600 (10 min) preserves prior hardcoded behavior. The UI step
@@ -33,7 +33,6 @@ const DEFAULTS = {
   voiceCommands:         true,    // app-wide voice control when model is ready
   limitVrVocab:          true,    // strict grammar — recognizer constrained to command vocabulary
   vcKeepLastWord:        false,   // when on, last recognized word stays visible until next match
-  messages:              ['Remember your goal','Audiate to intonate','Create emphasis'],
   restQ:                 ['What is your goal?', 'How will you achieve it?', ''],
   restQClose:            ['Anything that wasn\'t practiced?', 'What should you do next time?'],
   // The user's words for "correct" and "wrong". When non-empty these are
@@ -48,7 +47,7 @@ const DEFAULTS = {
   // trigger is comma-separated words/phrases replacing the builtin list; empty = use builtin.
   // Missing key = enabled with builtin triggers.
   vcCommandOverrides:    {},
-  routinesEnabled:       false
+  routinesEnabled:       true
 };
 
 let settings = (() => {

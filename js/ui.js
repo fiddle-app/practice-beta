@@ -257,10 +257,10 @@ $('s-vc-keep').addEventListener('change', e => {
 
 $('s-reset-btn').addEventListener('click', () => { $('reset-overlay').classList.add('open'); });
 
-// messages/vrGood/vrBad are user-edited lists. They only get restored on
-// the "Yes, reset everything" branch (clearMessages=true) — otherwise the
-// user keeps their reminders and voice synonyms.
-const RESET_DESTRUCTIVE_ONLY = new Set(['messages', 'vrGood', 'vrBad']);
+// vrGood/vrBad are user-edited lists. They only get restored on the "Yes, reset
+// everything" branch (clearMessages=true) — otherwise the user keeps their
+// voice synonyms.
+const RESET_DESTRUCTIVE_ONLY = new Set(['vrGood', 'vrBad']);
 
 function doReset(clearMessages) {
   // Reset settings to defaults — but NEVER the saved practice routines. They live
@@ -275,7 +275,7 @@ function doReset(clearMessages) {
     }
     saveSettings();
   });
-  syncSettingsUI(); renderMsgList(); renderVcCmdList(); render();
+  syncSettingsUI(); renderVcCmdList(); render();
   if (typeof vcOnSettingChange === 'function') {
     vcOnSettingChange('vcKeepLastWord');
     // Force the recognizer to pick up the restored defaults.
@@ -299,28 +299,6 @@ $('reset-cancel').addEventListener('click', () => { $('reset-overlay').classList
   });
 });
 
-function renderMsgList() {
-  const list = $('msg-list'); list.innerHTML = '';
-  settings.messages.forEach((m, i) => {
-    const row = document.createElement('div'); row.className = 'msg-row';
-    const inp = document.createElement('input');
-    inp.type = 'text'; inp.className = 'msg-inp'; inp.value = m;
-    inp.addEventListener('input', () => { settings.messages[i] = inp.value; saveSettings(); });
-    const del = document.createElement('button');
-    del.className = 'msg-del'; del.textContent = '\xd7';
-    del.addEventListener('click', () => { settings.messages.splice(i,1); saveSettings(); renderMsgList(); });
-    row.appendChild(inp); row.appendChild(del); list.appendChild(row);
-  });
-}
-
-$('add-msg-btn').addEventListener('click', () => {
-  settings.messages.push(''); saveSettings(); renderMsgList();
-  const inp = $('msg-list').querySelectorAll('.msg-inp');
-  if (inp.length) inp[inp.length-1].focus();
-});
-
-// Voice Recognition synonym lists. `field` is 'vrGood' or 'vrBad'; `listId` is
-// the container element ID. Same edit/delete UX as renderMsgList — add via
 // ── Voice command override list ───────────────────────────────────
 const VC_CMD_DEFS = [
   { id: 'cmdStart',      label: 'Start',                   builtin: 'start' },
@@ -621,7 +599,7 @@ $('settings-btn').addEventListener('click', () => {
   _wasPaused = isPaused;
   _vcOverridesSnapshot = JSON.stringify(settings.vcCommandOverrides || {});
   if (!isPaused && phase !== 'ready') { isPaused = true; render(); }
-  syncSettingsUI(); renderMsgList(); renderVcCmdList(); renderDiagLog(); renderBootStatus();
+  syncSettingsUI(); renderVcCmdList(); renderDiagLog(); renderBootStatus();
   renderSwStatus(); renderMemStatus();
   applyDebugReveal();
   const sbd = $('settings-build-date');

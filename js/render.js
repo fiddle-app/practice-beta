@@ -16,7 +16,6 @@ const elRoundCtr     = $('round-counter');
 const elRingFg       = $('ring-fg');
 const elTimeDisplay  = $('time-display');
 const elReadyRing    = $('ready-ring-text');
-const elMessage      = $('message');
 const elControls     = $('controls');
 const elStartBtn     = $('start-btn');
 const elReviewBtn    = $('review-btn');
@@ -178,13 +177,6 @@ function render() {
       'Last chunk: ' + fmt(lastChunkDur) + '<br>' +
       fmtF(lastPracticeTime) + ' practice time<br>' +
       fmtF(lastChunkElapsed) + ' clock time';
-  }
-
-  // Message (break hints only)
-  if (isBreak && settings.messages.length) {
-    elMessage.textContent = settings.messages[msgIndex % settings.messages.length];
-  } else {
-    elMessage.textContent = '';
   }
 
   // Controls vs Start button

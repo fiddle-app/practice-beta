@@ -11,8 +11,8 @@
 <meta name="theme-color" id="meta-theme" content="#0d0d0d">
 <!-- Stamped by scripts/deploy.sh — used by the inline version-coherence
      check below to detect a hybrid-cache state at launch. Source ships
-     with 2026-06-03 14:27 as the literal placeholder. -->
-<meta name="microbreaker-build" content="2026-06-03 14:27">
+     with 2026-06-03 15:53 as the literal placeholder. -->
+<meta name="microbreaker-build" content="2026-06-03 15:53">
 <!-- PWA home-screen icon. MUST be a real PNG file reference — iOS Safari
      "Add to Home Screen" does not reliably accept data: URLs or JS-generated
      canvas icons. If you change this, test on iPad Safari: Share → Add to
@@ -228,7 +228,7 @@
   var current = (meta && meta.content) || null;
   // Treat the unstamped placeholder as no-info (running source uncompiled).
   // The placeholder string is built from string concatenation so the
-  // deploy.sh sed pass on this file (which replaces 2026-06-03 14:27 with
+  // deploy.sh sed pass on this file (which replaces 2026-06-03 15:53 with
   // the actual build) cannot match it as a contiguous substring. If we
   // wrote the literal here, sed would replace this check itself, turning
   // it into "if current === <build>" — i.e., treating every clean deploy
@@ -650,7 +650,6 @@ if (window._mbShowUpgradeModal) window._mbShowUpgradeModal(window._mbUpgrade);
           </div>
         </button>
       </div>
-      <div id="message"></div>
       <div id="review-slot-lower">
         <div style="flex:1"></div>
         <div id="rest-report"></div>
@@ -837,9 +836,6 @@ if (window._mbShowUpgradeModal) window._mbShowUpgradeModal(window._mbUpgrade);
     <input type="text" class="msg-inp" id="s-restqc1" placeholder="Question 1">
     <input type="text" class="msg-inp" id="s-restqc2" placeholder="Question 2 (optional)">
   </div>
-  <div class="s-sec">Micro-break reminders</div>
-  <div id="msg-list"></div>
-  <button id="add-msg-btn">+ Add reminder</button>
   <div class="s-sec" style="margin-top:4px;">Navigation Commands</div>
   <div class="s-sub" style="padding: 0 0 10px;">Toggle commands or replace trigger words (comma-separated). Changes apply when you close settings.</div>
   <div id="vc-cmd-list"></div>
