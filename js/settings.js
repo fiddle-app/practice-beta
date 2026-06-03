@@ -5,7 +5,7 @@
 // =================================================
 // Release mic tracks between phases on Safari/iOS (so the mic indicator turns off).
 // On Chrome, keep the stream alive to avoid re-prompting each work phase.
-const BUILD_DATE = '2026-06-03 08:57';   // stamped automatically by deploy.sh — do not edit manually
+const BUILD_DATE = '2026-06-03 09:50';   // stamped automatically by deploy.sh — do not edit manually
 const IS_SAFARI  = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
 const DEFAULTS = {
@@ -39,9 +39,10 @@ const DEFAULTS = {
   // The user's words for "correct" and "wrong". When non-empty these are
   // exactly what the recognizer matches against — there's no built-in
   // synonym list merged underneath. If the user clears one entirely,
-  // voice.js falls back to ['correct'] / ['wrong'] so the rep counter
-  // always has at least one trigger word.
-  vrGood:                ['correct', 'good'],
+  // voice.js falls back to ['good'] / ['wrong'] so the rep counter
+  // always has at least one trigger word. Trimmed to a single word each
+  // (2026-06) to minimise accidental rep-counter hits while practicing.
+  vrGood:                ['good'],
   vrBad:                 ['wrong'],
   // Per-command overrides: keyed by command ID, value is { enabled: bool, trigger: string }.
   // trigger is comma-separated words/phrases replacing the builtin list; empty = use builtin.
@@ -77,6 +78,14 @@ let settings = (() => {
     if (stored.notifyVol !== undefined) stored.notifyVol = parseFloat(stored.notifyVol);
     if (isNaN(stored.notifyVol)) stored.notifyVol = 0.35;
     if (stored.reviewVol !== undefined) stored.reviewVol = parseFloat(stored.reviewVol) || 0.8;
+    // 2026-06: trimmed the default "correct" synonym list to a single word.
+    // Migrate ONLY installs still on the exact prior default ['correct','good'];
+    // a customized list is left untouched. (vrBad's default ['wrong'] is
+    // unchanged, so it needs no migration.)
+    if (Array.isArray(stored.vrGood) && stored.vrGood.length === 2 &&
+        stored.vrGood[0] === 'correct' && stored.vrGood[1] === 'good') {
+      stored.vrGood = ['good'];
+    }
     return Object.assign({}, DEFAULTS, stored);
   } catch(e) { return {...DEFAULTS}; }
 })();

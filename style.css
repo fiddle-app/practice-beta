@@ -1146,6 +1146,10 @@ flex-grow: 1;
   background: rgba(255,255,255,0.05); border-radius: 8px; padding: 10px 12px;
   margin: 0; line-height: 1.5;
 }
+/* Highlighted required fields in the format guide — the practice-screen orange,
+   so the two required tokens read as "the important ones" against the dark guide
+   and tie visually to the orange routine buttons. */
+.re-guidance-text .fg-key { color: var(--color-orange); font-weight: 700; }
 .re-textarea {
   width: 100%; box-sizing: border-box; min-height: 200px;
   background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.20);

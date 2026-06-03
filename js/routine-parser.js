@@ -8,12 +8,13 @@
 //
 // Format:
 //   Name: {name}
-//   [Order: {Sequential | Random | Random with no repeats}]
-//   {chunkTime}[, {practiceTime}[, {microbreakTime}]] {subject}[; {goal}][; {strategy}][; {retrospectiveQ}]
-//   [{restTime} Rest]
+//   [Order: {Sequential | Random}]
+//   {chunkTime}[, {practiceTime}[, {microbreakTime}[, {restTime}]]] {subject}[; {goal}][; {strategy}][; {retrospectiveQ}]
 //
-// Times: M:SS  or  :SS  or  M  (integer minutes)  or  decimal (e.g. 1.5 = 1:30)
-// "Rest" is a reserved subject word that sets the rest duration for subsequent chunks.
+// Times are POSITIONAL: chunkTime first, then optionally practiceTime,
+// microbreakTime, restTime — each specifiable only if all earlier ones are. A
+// null time inherits the global setting. Only chunkTime and subject are required.
+// Time formats: M:SS  or  :SS  or  M (integer minutes)  or  decimal (e.g. 1.5 = 1:30)
 // Blank lines and lines starting with # are ignored.
 
 function parseTime(token) {
@@ -44,7 +45,6 @@ function parseRoutineText(text) {
   };
 
   let hasName      = false;
-  let currentRestTime = null; // null = use global setting
 
   const lines = text.split('\n');
   for (let i = 0; i < lines.length; i++) {
@@ -117,17 +117,6 @@ function parseRoutineText(text) {
       continue;
     }
 
-    // "Rest" is a reserved word — sets the rest duration, not a chunk
-    if (subject.toLowerCase() === 'rest') {
-      const t = parseTime(timeTokens[0]);
-      if (t === null) {
-        errors.push(`Line ${lineNum}: Invalid time "${timeTokens[0]}" for Rest.`);
-      } else {
-        currentRestTime = t;
-      }
-      continue;
-    }
-
     const times = timeTokens.map(tok => {
       const t = parseTime(tok);
       if (t === null) {
@@ -146,7 +135,7 @@ function parseRoutineText(text) {
       chunkTime:       times[0] ?? null,
       practiceTime:    times[1] ?? null,
       microbreakTime:  times[2] ?? null,
-      restTime:        currentRestTime,
+      restTime:        times[3] ?? null,
     };
     routine.chunks.push(chunk);
   }

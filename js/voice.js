@@ -12,11 +12,13 @@
 //
 // Buckets:
 //   claim / reject       → user-defined "correct" / "wrong" phrases (vrGood /
-//                          vrBad in settings); fall back to ["correct"] /
+//                          vrBad in settings); fall back to ["good"] /
 //                          ["wrong"] if the user clears the list
-//   cmdStart / cmdReady / cmdDone / cmdNext / cmdPause / cmdPlay /
-//   cmdSettings / cmdInfo / cmdClose / cmdReview / cmdReplay /
-//   cmdRepCounter        → built-in navigation commands (not customizable)
+//   cmdStart / cmdReady / cmdDone / cmdNext / cmdAdvance / cmdPause /
+//   cmdPlay / cmdSettings / cmdInfo / cmdClose / cmdReview / cmdReplay /
+//   cmdRepCounter        → built-in navigation commands (trigger phrases
+//                          customizable via Settings; cmdAdvance is the
+//                          phrase-based phase advance used only in practice)
 //
 // Globals consumed:
 //   audioCtx, ensureAudio()       (audio-ctx.js)
@@ -45,8 +47,10 @@ const VC_WORKLET_URL = 'js/voice-commands-worklet.js';
 // Fallback claim/reject phrases when the user has cleared their custom list.
 // The user's vrGood / vrBad arrays REPLACE these entirely when non-empty —
 // the prior "merge built-ins on top" model is gone. Defaults seeded in
-// settings.js so a fresh install gets ["correct","good"] / ["wrong","restart"].
-const VC_BUILTIN_GOOD_FALLBACK = ['correct'];
+// settings.js so a fresh install gets ["good"] / ["wrong"] (trimmed to one word
+// each on 2026-06: fewer trigger words = fewer accidental hits while a user
+// narrates their problem-solving out loud during practice).
+const VC_BUILTIN_GOOD_FALLBACK = ['good'];
 const VC_BUILTIN_BAD_FALLBACK  = ['wrong'];
 
 // Built-in navigation commands (not user-customizable). Each bucket name is
@@ -65,7 +69,14 @@ const VC_BUILTIN_COMMANDS = {
   cmdClose:      ['close'],
   cmdReview:     ['review', 'recording', 'review recording'],
   cmdReplay:     ['replay'],
-  cmdRepCounter: ['rep counter', 'counter', 'reps'],
+  // Two-word trigger only — a bare "reps"/"counter" was too easy to hit by
+  // accident mid-practice (Molly Gebrian narrating her problem-solving).
+  cmdRepCounter: ['reps counter', 'rep counter'],
+  // Phrase-based phase advance used ONLY in the practice context (see
+  // VOICE_CONTEXT_HANDLERS.practice). Multi-word so casual speech doesn't trip
+  // it. "i am done" rides alongside "i'm done" in case Vosk expands the
+  // contraction in its transcript.
+  cmdAdvance:    ["i'm done", "i am done", "take a break"],
 };
 
 function vcDedupeBucket(arr) {
@@ -122,23 +133,26 @@ const VOICE_CONTEXT_HANDLERS = {
     cmdSettings: () => $('settings-btn').click(),
   },
   practice: {
-    // claim/reject are rep-counter-only and ONLY fire while the panel is
-    // expanded. When the panel is closed, the rep counter is "off" — voice
-    // pretends it doesn't exist and these go to /dev/null. Per Casey's
-    // amendment: nothing acts as a synonym for "correct" except the words
-    // explicitly in the user's list (vrGood). cmdDone/Ready/Next are
-    // navigation commands that advance the phase — they never claim a rep.
-    // cmdStart is intentionally NOT mapped here — "start" only makes
-    // sense on the Ready screen, not mid-practice.
+    // Deliberately locked down. While the user is actively playing — and may be
+    // narrating their problem-solving out loud (Molly Gebrian's use case) — only
+    // a few HARD-to-say-by-accident commands act. Everything else is intentionally
+    // absent here, so saying it mid-practice is a no-op:
+    //   - cmdReady/cmdDone/cmdNext (bare "ready"/"done"/"next") — advancing now
+    //     requires the cmdAdvance phrase below, never a single word.
+    //   - cmdPause/cmdPlay — pausing is a hands-on action (you're putting the
+    //     instrument down anyway).
+    //   - cmdSettings/cmdInfo — no reason to open those while playing.
+    //   - cmdClose — CATASTROPHIC (ends the whole chunk), so never voice-triggered
+    //     during practice.
+    // These all still work in their other contexts (break/rest/ready/review).
+    //
+    // claim/reject ("good"/"wrong") fire ONLY while the rep-counter panel is open
+    // (rcExpanded) — inert unless the user has explicitly opened the counter.
     claim:         () => { if (typeof rcExpanded !== 'undefined' && rcExpanded && typeof rcClaimNext === 'function') rcClaimNext(); },
     reject:        () => { if (typeof rcExpanded !== 'undefined' && rcExpanded && typeof rcClearAll  === 'function') rcClearAll();  },
-    cmdReady:      () => $('btn-next').click(),
-    cmdDone:       () => $('btn-next').click(),
-    cmdNext:       () => $('btn-next').click(),
-    cmdPause:      () => { if (typeof isPaused !== 'undefined' && !isPaused) $('btn-play-pause').click(); },
-    cmdPlay:       () => { if (typeof isPaused !== 'undefined' &&  isPaused) $('btn-play-pause').click(); },
-    cmdSettings:   () => $('settings-btn').click(),
-    cmdClose:      () => $('close-btn').click(),  // ends the chunk → returns to ready
+    // Advancing requires a deliberate phrase ("i'm done" / "take a break").
+    cmdAdvance:    () => $('btn-next').click(),
+    // Opening the counter requires the two-word "reps counter".
     cmdRepCounter: () => $('rc-toggle-btn').click(),
   },
   break: {
@@ -602,11 +616,15 @@ function vcOnSettingChange(name) {
     return;
   }
 
-  if (!vc) return;  // vrGood/vrBad/limitVrVocab only matter once vc exists
+  if (!vc) return;  // vrGood/vrBad/limitVrVocab/vcCommandOverrides only matter once vc exists
 
-  if (name === 'limitVrVocab' || name === 'vrGood' || name === 'vrBad') {
+  if (name === 'limitVrVocab' || name === 'vrGood' || name === 'vrBad' ||
+      name === 'vcCommandOverrides') {
     // Recognizer-only rebuild — keeps the Model (and its ~80 MB WASM heap)
     // alive across the toggle. Was the 150 MB transient cliff per change.
+    // vcCommandOverrides is included so editing a command's trigger phrases
+    // (e.g. cmdAdvance) in Settings takes effect on Settings-close, not only
+    // after the next page load.
     vc.setCommands(vcBuildCommands(), !!settings.limitVrVocab);
   }
 }

@@ -11,23 +11,18 @@ Order: Sequential
 5:00 First thing to practice`;
 
 const EDITOR_GUIDANCE =
-`Fields in [] are optional.
+`Name: {name}
+[Order: Sequential | Random]
+chunkTime, roundTime, microbreakTime, restTime  subject; goal; strategy; retrospective question
 
-Name: {Name of the routine}
-[Order: {Sequential | Random}]
-{chunkTime}[, {practiceTime}[, {microbreakTime}]] {subject}[; {goal}][; {strategy}][; {retrospective question}]
-[{restTime} Rest]
-
-Times: M:SS (e.g. 4:00), :SS (e.g. :30), or minutes (e.g. 4)
-"Rest" is a reserved word — do not use it as a subject.
-Random plays each chunk once in shuffled order, then ends.
+Only the chunkTime and subject are required!
 
 Example:
 Name: Daily Drills
 Order: Sequential
-4:00 G Major Scale
-1:30 Rest
-6:00, 1:00, :10 Arpeggios; Focus on bow arm; Slow then fast; Did your bow arm stay relaxed?`;
+5 G Major Scale
+4:30 Slow Arpeggios; Even tone across strings
+4.5, 4, :15, 2:00 Spiccato; Controlled bouncing bow; Start slow at the frog; Did the bounce stay even?`;
 
 // ---- Selector modal ----
 
@@ -236,26 +231,19 @@ function _routineToText(routine) {
     lines.push('Order: ' + (orderMap[routine.order] || 'Sequential'));
   }
 
-  let lastRestTime = null;
-
   routine.chunks.forEach(chunk => {
-    // Emit Rest: line if restTime changed
-    if (chunk.restTime !== lastRestTime) {
-      if (chunk.restTime !== null) {
-        lines.push(_fmtTime(chunk.restTime) + ' Rest');
-      }
-      lastRestTime = chunk.restTime;
-    }
-
-    // Build time prefix — format is positional: chunkTime[, practiceTime[, microbreakTime]]
-    // microbreakTime can only be emitted when practiceTime is also present.
+    // Build the positional time prefix: chunkTime, practiceTime, microbreakTime,
+    // restTime. Emit a contiguous prefix up to the last specified value — a
+    // positional list can't have holes, so an interior null below a specified
+    // value is backfilled with the matching global default (its effective value).
+    const raw     = [chunk.chunkTime, chunk.practiceTime, chunk.microbreakTime, chunk.restTime];
+    const globals = [settings.chunkDur, settings.workDur, settings.breakDur, settings.restDur];
+    let lastIdx = -1;
+    for (let k = 0; k < 4; k++) if (raw[k] !== null && raw[k] !== undefined) lastIdx = k;
     const times = [];
-    if (chunk.chunkTime !== null) {
-      times.push(_fmtTime(chunk.chunkTime));
-      if (chunk.practiceTime !== null) {
-        times.push(_fmtTime(chunk.practiceTime));
-        if (chunk.microbreakTime !== null) times.push(_fmtTime(chunk.microbreakTime));
-      }
+    for (let k = 0; k <= lastIdx; k++) {
+      const v = (raw[k] !== null && raw[k] !== undefined) ? raw[k] : globals[k];
+      times.push(_fmtTime(v));
     }
 
     const timeStr = times.join(', ');
