@@ -1202,7 +1202,7 @@ body:has(#ring-wrap.ring-start-ready) #mid-zone { justify-content: flex-start; }
   opacity: 0.75; cursor: default; user-select: none;
 }
 .re-textarea {
-  width: 100%; box-sizing: border-box; min-height: 200px;
+  width: 100%; box-sizing: border-box; min-height: 296px;  /* ~12 lines (4 taller than the old ~8) at 15px/1.6 */
   background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.20);
   border-radius: 10px; color: #fff; font-family: 'Nunito', sans-serif;
   font-size: 15px; padding: 12px; resize: vertical;
