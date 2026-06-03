@@ -14,9 +14,14 @@
 // mic wanted → media rail) output is already loud, so no boost (2x there could
 // clip). Gated on appWantsMic() rather than the live mic so it's stable across the
 // session and also covers voice-only (mic live, recording off). Bounded by digital
-// clipping: bell base gains (0.28–0.42) stay under 1.0 at 2x; if overlapping sounds
-// ever clip audibly, add a master-bus limiter.
-const SPEAKERPHONE_BOOST = 2.0;
+// clipping at the DEFAULT volume slider (notifyVol 0.35 → 1.0x multiplier): the
+// hottest single sound is the final gong (0.42 base → 0.42*2.3 = 0.97, just under
+// 1.0). Above default the user's own slider can clip the gong regardless — the real
+// headroom fix there is a master-bus limiter (would also let this go higher), but
+// that means rerouting masterGain→destination in shared audio-ctx.js, deferred while
+// that file is frozen (backlog C14). Raised 2.0→2.3 on 2026-06-03 per Casey ("bells
+// a little louder").
+const SPEAKERPHONE_BOOST = 2.3;
 function _railBoost() {
   return (typeof appWantsMic === 'function' && appWantsMic()) ? SPEAKERPHONE_BOOST : 1.0;
 }
@@ -39,6 +44,14 @@ function getMasterGainForSettings() {
 // 'playback' category, which routes output through Bluetooth A2DP /
 // car stereo / AirPlay (the routing 'play-and-record' blocks).
 function appWantsMic() {
+  // While the review overlay is open we deliberately give up the mic. With the
+  // mic held the session is 'play-and-record', which pins output to iOS's quiet
+  // speakerphone rail — review playback comes out ducked to near-inaudible no
+  // matter how hot the decoded buffer is. Returning false here drops the session
+  // to 'playback' (loud media rail). openReview() releases the mic; closeReview()
+  // re-acquires it within the close-button gesture. (reviewOpen lives in ui.js;
+  // cross-script global, guarded for shared-module safety.)
+  if (typeof reviewOpen !== 'undefined' && reviewOpen) return false;
   const voiceActive = settings.voiceCommands &&
     !(typeof isVoiceSessionSuppressed === 'function' && isVoiceSessionSuppressed());
   return !!(settings.recording || voiceActive);

@@ -75,6 +75,15 @@ document.addEventListener('pointerdown', () => { wlOnActivity('pointerdown'); },
 // re-open them.
 window.addEventListener('pageshow', (e) => {
   $('review-overlay').classList.remove('open');
+  // This force-closes review WITHOUT going through closeReview(), so do its
+  // teardown here: reset the mic-release flag (else appWantsMic() stays stuck
+  // false and the mic never re-acquires) and free the decoded review buffer +
+  // gain node (up to ~170 MB) that closeReview() would normally release. The
+  // audio nuke + foreground/resume path rebuilds mic+voice via the next gesture.
+  reviewOpen = false;
+  _revStop();
+  reviewBuffer = null;
+  if (reviewGain) { try { reviewGain.disconnect(); } catch (_) {} reviewGain = null; }
   $('settings-overlay').classList.remove('open');
   $('info-overlay').classList.remove('open');
   $('reset-overlay').classList.remove('open');
@@ -749,6 +758,7 @@ let revTrimEnd        = 0;   // seconds into raw audio where content ends
 let reviewBuffer       = null;  // decoded AudioBuffer; alive only during review
 let reviewSource       = null;  // current AudioBufferSourceNode (recreated on play/seek)
 let reviewGain         = null;  // GainNode for review volume
+let reviewOpen         = false; // true while the review overlay is up — read by appWantsMic() (audio.js) to drop the mic so playback leaves the quiet iOS speakerphone rail for the loud media rail
 let revPeak            = 0;     // |max| sample of the decoded review buffer — for the clip-safe gain clamp
 let reviewPlaying      = false;
 let reviewSeekOffset   = 0;     // playback position (sec) when source was last started
@@ -956,6 +966,18 @@ function _reviewGainValue() {
 
 async function openReview() {
   if (!reviewBlob) return;
+  // Hand back the mic for the duration of review so the iOS audio session
+  // leaves 'play-and-record' (quiet speakerphone rail) for 'playback' (loud
+  // media rail) — otherwise playback is ducked to near-inaudible while the mic
+  // is held for recording/voice. Order matters: stop the recognizer cleanly
+  // BEFORE the stream dies, set reviewOpen so appWantsMic() (and thus the
+  // ensureAudio() re-assert just below) resolves to 'playback', then release.
+  // closeReview() restores all of this. All synchronous, so the click handler's
+  // user-gesture frame is preserved for the ensureAudio() resume.
+  reviewOpen = true;
+  if (typeof vcStop === 'function') vcStop();
+  if (typeof releaseMic === 'function') releaseMic();
+
   // ensureAudio() is async; openReview is called from a click handler so
   // the synchronous-resume rule is satisfied. Kick the unlock off (it's
   // idempotent if already unlocked) before any await.
@@ -1132,10 +1154,45 @@ function closeReview() {
   // Restore bg-fill to current phase color
   const bgEdge = phase === 'work' ? '#4d1903' : phase === 'break' ? '#080928' : '#0d0d0d';
   setBg(bgEdge);
-  // Play review-close sound
-  ensureAudio();
-  beep(392, 0.40, 0.28, 'sine', 0.0);   // G4
-  beep(261.6, 0.80, 0.25, 'sine', 0.45); // C4
+
+  // Re-establish the live session that openReview() tore down for loud playback.
+  // appWantsMic() is truthful again the instant reviewOpen flips false. If the
+  // session still wants the mic (recording and/or voice enabled), re-acquire it
+  // FIRST — the close-button tap is a valid user gesture, so this won't trip the
+  // gesture-less mic-permission-prompt trap, and it avoids a mic-less
+  // 'play-and-record' window (which routes output to the earpiece, inaudible).
+  // acquireMic() is authoritative and idempotent; vcStart() then reuses the
+  // stream. Play the close chime only once the session is settled so it lands on
+  // the correct rail.
+  reviewOpen = false;
+  const _playCloseChime = () => {
+    ensureAudio();
+    beep(392, 0.40, 0.28, 'sine', 0.0);   // G4
+    beep(261.6, 0.80, 0.25, 'sine', 0.45); // C4
+  };
+  const _afterMic = () => {
+    // Mirror appWantsMic()'s voice gate: restart the recognizer only if voice
+    // is enabled AND not suppressed for this session ("No thanks" at launch) —
+    // otherwise closing review would silently un-suppress voice.
+    const _voiceOk = settings.voiceCommands &&
+      !(typeof isVoiceSessionSuppressed === 'function' && isVoiceSessionSuppressed());
+    if (_voiceOk && typeof vcStart === 'function') vcStart();
+    _playCloseChime();
+  };
+  const _wantMic = (typeof appWantsMic === 'function') && appWantsMic();
+  if (_wantMic && !micStream && typeof acquireMic === 'function') {
+    // acquireMic() resolves false (not rejects) on a denied/failed grab, and
+    // _afterMic still plays the chime in that case; the .catch is for an
+    // unexpected throw so a dead mic + silent chime can't pass unnoticed.
+    acquireMic().then(_afterMic).catch(err => {
+      console.warn('[review] mic re-acquire after close failed:', err);
+      _playCloseChime();
+    });
+  } else if (_wantMic) {
+    _afterMic();          // mic already live (e.g. release was a no-op)
+  } else {
+    _playCloseChime();    // neither recording nor voice — stay on the media rail
+  }
 }
 
 $('rev-restart').addEventListener('click', () => {

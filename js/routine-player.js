@@ -84,6 +84,10 @@ function startRoutine(routine) {
   _chunkSequence  = _buildSequence(routine);
   _sequenceIndex  = 0;
   nextChunk(); // arms overrides + _activeChunk for the first chunk
-  // timer is already at 'ready' phase; render() will pick up _activeChunk
-  // on the next RAF frame and show the chunk info on the start screen.
+  // Render NOW. The timer is already at 'ready', and the tick() RAF loop does
+  // NOT render during the ready phase (timer.js returns early before its render
+  // calls), so without this the freshly-armed _activeChunk never reaches the
+  // start screen — the chunk-info block stays hidden. (Inter-chunk transitions
+  // are fine: those go through _advance()→_enterPhase('ready'), which renders.)
+  if (typeof render === 'function') render();
 }

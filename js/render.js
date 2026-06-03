@@ -96,9 +96,14 @@ function render() {
     $('chunk-strategy').style.display = activeChunk.strategy ? '' : 'none';
   }
 
-  // Rest questions — hidden if chunk-info is showing (they are mutually exclusive)
-  elRestQ.style.display = (!showChunkInfo && (isReady || isRest)) ? 'flex' : 'none';
-  if (!showChunkInfo && (isReady || isRest)) {
+  // Rest questions. On the READY screen they now coexist WITH chunk-info: the
+  // chunk-info block renders directly above them (DOM order in #mid-zone), so the
+  // user sees the routine's subject/goal/strategy AND still gets the reflective
+  // prompts below. On work/break the questions stay hidden (chunk-info owns that
+  // space); on rest, chunk-info is hidden and the questions show alone. So the
+  // condition is simply (isReady || isRest) regardless of showChunkInfo.
+  elRestQ.style.display = (isReady || isRest) ? 'flex' : 'none';
+  if (isReady || isRest) {
     const ps = elRestQ.querySelectorAll('p');
     const q  = isRest
       ? (settings.restQClose || ['', '']).concat([''])

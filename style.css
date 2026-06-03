@@ -1020,12 +1020,14 @@ flex-grow: 1;
   display: flex; align-items: center; gap: 8px;
   min-height: 52px;
 }
-/* Routine name button — pill, soft-dome (mirrors #start-btn-inner) */
+/* Routine name button — pill, soft-dome (mirrors #start-btn-inner). Base fill is
+   the practice-screen orange (--color-orange) with the soft white dome highlight
+   layered on top; pressed state darkens to --color-orange-dark. */
 .rs-name-btn {
   flex: 1; -webkit-appearance: none; font-family: 'Nunito', sans-serif;
   background:
     radial-gradient(circle at 72% 25%, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 50%),
-    rgba(255,255,255,0.11);
+    var(--color-orange);
   border: 1.5px solid transparent;
   box-shadow: -3px 4px 8px rgba(0,0,0,0.30);
   border-radius: 999px;
@@ -1038,7 +1040,7 @@ flex-grow: 1;
 .rs-name-btn:active {
   background:
     radial-gradient(circle at 72% 25%, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0) 50%),
-    rgba(255,255,255,0.20);
+    var(--color-orange-dark);
   transform: scale(0.97);
 }
 .rs-icon-btn {
