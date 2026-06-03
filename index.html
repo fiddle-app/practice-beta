@@ -11,8 +11,8 @@
 <meta name="theme-color" id="meta-theme" content="#0d0d0d">
 <!-- Stamped by scripts/deploy.sh — used by the inline version-coherence
      check below to detect a hybrid-cache state at launch. Source ships
-     with 2026-06-03 10:44 as the literal placeholder. -->
-<meta name="microbreaker-build" content="2026-06-03 10:44">
+     with 2026-06-03 11:39 as the literal placeholder. -->
+<meta name="microbreaker-build" content="2026-06-03 11:39">
 <!-- PWA home-screen icon. MUST be a real PNG file reference — iOS Safari
      "Add to Home Screen" does not reliably accept data: URLs or JS-generated
      canvas icons. If you change this, test on iPad Safari: Share → Add to
@@ -228,7 +228,7 @@
   var current = (meta && meta.content) || null;
   // Treat the unstamped placeholder as no-info (running source uncompiled).
   // The placeholder string is built from string concatenation so the
-  // deploy.sh sed pass on this file (which replaces 2026-06-03 10:44 with
+  // deploy.sh sed pass on this file (which replaces 2026-06-03 11:39 with
   // the actual build) cannot match it as a contiguous substring. If we
   // wrote the literal here, sed would replace this check itself, turning
   // it into "if current === <build>" — i.e., treating every clean deploy
@@ -1010,13 +1010,13 @@ if (window._mbShowUpgradeModal) window._mbShowUpgradeModal(window._mbUpgrade);
       <button id="routine-editor-copy" class="re-clipboard-btn">Copy</button>
       <button id="routine-editor-paste" class="re-clipboard-btn">Paste</button>
       <button id="routine-editor-cancel" class="re-cancel-btn">Cancel</button>
-      <button id="routine-editor-done" class="re-done-btn" disabled>Done</button>
+      <button id="routine-editor-done" class="re-done-btn" disabled>Save</button>
     </div>
     <details id="re-guidance-details" class="re-guidance">
       <summary>Format guide ▸</summary>
       <pre class="re-guidance-text">Name: {name}
 Order: Sequential | Random
-<span class="fg-key">chunkTime</span>, roundTime, microbreakTime, restTime  <span class="fg-key">subject</span>; goal; strategy; retrospective question</pre>
+<span class="fg-key">chunkTime</span>, roundTime  <span class="fg-key">subject</span>; goal; strategy; retrospective question</pre>
       <div class="re-guidance-note">
         <p>Only the <span class="fg-key">chunkTime</span> and <span class="fg-key">subject</span> are required!</p>
         <p>If you don't specify the order, "sequential" is the default.</p>
@@ -1026,7 +1026,7 @@ Order: Sequential | Random
 Order: Sequential
 5 G Major Scale
 4:30 Slow Arpeggios; Even tone across strings
-4.5, 1, :15, 2:00 Spiccato; Controlled bouncing bow; Start slow at the frog; Did the bounce stay even?</pre>
+4.5, 1 Spiccato; Controlled bouncing bow; Start slow at the frog; Did the bounce stay even?</pre>
     </details>
   </div>
 </div>

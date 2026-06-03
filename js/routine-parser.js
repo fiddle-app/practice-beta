@@ -16,6 +16,12 @@
 // null time inherits the global setting. Only chunkTime and subject are required.
 // Time formats: M:SS  or  :SS  or  M (integer minutes)  or  decimal (e.g. 1.5 = 1:30)
 // Blank lines and lines starting with # are ignored.
+//
+// NOTE (2026-06): the in-app format guide intentionally documents only chunkTime
+// and practiceTime (labelled "roundTime") — most users keep default break/rest
+// for everything, so microbreakTime/restTime just made the format look complex.
+// They are STILL parsed (and round-tripped by _routineToText) for power users and
+// any pre-existing routines that use them; they're just undocumented in the UI.
 
 function parseTime(token) {
   token = token.trim();

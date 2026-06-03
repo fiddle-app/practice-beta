@@ -982,6 +982,11 @@ flex-grow: 1;
   padding: 6px 16px;
   text-align: center; font-family: 'Nunito', sans-serif; color: rgba(255,255,255,0.9);
 }
+/* On the start (ready) screen, lift the chunk-info to the top of its zone so it
+   sits up near the top of the screen — roughly halfway between the top and the
+   questions — instead of centered just above them. The questions stay put.
+   Work/break keep it centered (that class is only present on the ready phase). */
+body:has(#ring-wrap.ring-start-ready) #chunk-info { justify-content: flex-start; }
 #chunk-subject {
   font-size: clamp(16px, 5vw, 22px); font-weight: 700; line-height: 1.2;
 }
