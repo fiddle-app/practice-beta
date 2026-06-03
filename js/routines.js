@@ -42,3 +42,19 @@ function deleteRoutine(id) {
   const list = loadRoutines().filter(r => r.id !== id);
   saveRoutinesList(list);
 }
+
+// Practice routines are SACRED: no reset path may ever delete them. The user has
+// too much invested, and can remove them manually in the selector. Any settings
+// or data reset must run inside this wrapper — it snapshots the routines key and
+// restores it afterward, even if the wrapped work clears all of localStorage. Run
+// in a finally so a throw inside the reset can't strand the routines either.
+function withRoutinesPreserved(fn) {
+  const snapshot = localStorage.getItem(ROUTINES_KEY);
+  try {
+    return fn();
+  } finally {
+    if (snapshot !== null && localStorage.getItem(ROUTINES_KEY) !== snapshot) {
+      try { localStorage.setItem(ROUTINES_KEY, snapshot); } catch (e) {}
+    }
+  }
+}

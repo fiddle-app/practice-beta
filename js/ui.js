@@ -263,12 +263,19 @@ $('s-reset-btn').addEventListener('click', () => { $('reset-overlay').classList.
 const RESET_DESTRUCTIVE_ONLY = new Set(['messages', 'vrGood', 'vrBad']);
 
 function doReset(clearMessages) {
-  for (const key of Object.keys(DEFAULTS)) {
-    if (!clearMessages && RESET_DESTRUCTIVE_ONLY.has(key)) continue;
-    const val = DEFAULTS[key];
-    settings[key] = Array.isArray(val) ? [...val] : val;
-  }
-  saveSettings(); syncSettingsUI(); renderMsgList(); renderVcCmdList(); render();
+  // Reset settings to defaults — but NEVER the saved practice routines. They live
+  // under their own localStorage key (mb-routines), and DEFAULTS doesn't include
+  // them, so the loop below can't touch them; withRoutinesPreserved is a hard
+  // backstop in case any reset step ever clears storage more broadly.
+  withRoutinesPreserved(() => {
+    for (const key of Object.keys(DEFAULTS)) {
+      if (!clearMessages && RESET_DESTRUCTIVE_ONLY.has(key)) continue;
+      const val = DEFAULTS[key];
+      settings[key] = Array.isArray(val) ? [...val] : val;
+    }
+    saveSettings();
+  });
+  syncSettingsUI(); renderMsgList(); renderVcCmdList(); render();
   if (typeof vcOnSettingChange === 'function') {
     vcOnSettingChange('vcKeepLastWord');
     // Force the recognizer to pick up the restored defaults.

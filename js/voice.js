@@ -160,6 +160,7 @@ const VOICE_CONTEXT_HANDLERS = {
     cmdReady:    () => $('btn-next').click(),
     cmdDone:     () => $('btn-next').click(),
     cmdNext:     () => $('btn-next').click(),
+    cmdAdvance:  () => $('btn-next').click(),   // "i'm done" / "take a break" advance here too
     cmdPause:    () => { if (typeof isPaused !== 'undefined' && !isPaused) $('btn-play-pause').click(); },
     cmdPlay:     () => { if (typeof isPaused !== 'undefined' &&  isPaused) $('btn-play-pause').click(); },
     cmdSettings: () => $('settings-btn').click(),
@@ -174,6 +175,7 @@ const VOICE_CONTEXT_HANDLERS = {
     cmdReady:    () => $('btn-next').click(),
     cmdDone:     () => $('btn-next').click(),
     cmdNext:     () => $('btn-next').click(),
+    cmdAdvance:  () => $('btn-next').click(),   // "i'm done" / "take a break" advance here too
     cmdPause:    () => { if (typeof isPaused !== 'undefined' && !isPaused) $('btn-play-pause').click(); },
     cmdPlay:     () => { if (typeof isPaused !== 'undefined' &&  isPaused) $('btn-play-pause').click(); },
     cmdSettings: () => $('settings-btn').click(),
