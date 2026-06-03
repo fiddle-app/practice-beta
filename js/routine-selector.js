@@ -182,12 +182,50 @@ function _saveEditor() {
   _renderSelectorList();
 }
 
+// Copy as PLAIN TEXT ONLY. Bug: on iOS, navigator.clipboard.writeText() lets
+// Mail paste a URL representation of the text, so every space comes out as %20.
+// Writing an explicit single text/plain flavor (ClipboardItem) gives iOS nothing
+// but plain text to choose from. The hidden-textarea + execCommand path is the
+// long-standing plain-text-only fallback for older iOS / non-secure contexts.
+// Nothing here encodes or escapes — the routine text is copied verbatim.
+async function copyPlainText(text) {
+  // Preferred: one explicit text/plain flavor, no URL flavor for Mail to grab.
+  try {
+    if (navigator.clipboard && typeof navigator.clipboard.write === 'function' && window.ClipboardItem) {
+      const item = new ClipboardItem({ 'text/plain': new Blob([text], { type: 'text/plain' }) });
+      await navigator.clipboard.write([item]);
+      return true;
+    }
+  } catch (e) { /* fall through to execCommand */ }
+  // Fallback: copy a hidden textarea's selection — plain text only, all iOS.
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.top      = '0';
+    ta.style.opacity  = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    ta.setSelectionRange(0, text.length);
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    if (ok) return true;
+  } catch (e) { /* fall through to writeText */ }
+  // Last resort: the original writeText (may %20 on iOS Mail, but better than nothing).
+  try {
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch (e) { /* give up */ }
+  return false;
+}
+
 function _copyEditorText() {
   const text = $('routine-editor-textarea').value;
-  navigator.clipboard.writeText(text).then(() => {
-    _flashBtn($('routine-editor-copy'), 'Copied!');
-  }).catch(() => {
-    _flashBtn($('routine-editor-copy'), 'Failed');
+  copyPlainText(text).then((ok) => {
+    _flashBtn($('routine-editor-copy'), ok ? 'Copied!' : 'Failed');
   });
 }
 
