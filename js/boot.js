@@ -9,6 +9,11 @@ phaseTimeLeft    = 0;
 waitingToAdvance = false;
 practiceTime     = 0;
 chunkStartTime   = null;
+// Seed the two worked-example routines on a fresh install (or the boot after a
+// Hard reset, which clears localStorage). No-op once the routines key exists,
+// including an empty list — see seedDefaultRoutinesIfMissing in routines.js.
+// Runs before initRoutineSelector so the selector lists them on first open.
+if (typeof seedDefaultRoutinesIfMissing === 'function') seedDefaultRoutinesIfMissing();
 render();
 rafId = requestAnimationFrame(tick);
 if (typeof initRoutineSelector === 'function') initRoutineSelector();
