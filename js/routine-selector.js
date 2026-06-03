@@ -10,20 +10,6 @@ const STARTER_ROUTINE_TEXT =
 Order: Sequential
 5:00 First thing to practice`;
 
-const EDITOR_GUIDANCE =
-`Name: {name}
-[Order: Sequential | Random]
-chunkTime, roundTime, microbreakTime, restTime  subject; goal; strategy; retrospective question
-
-Only the chunkTime and subject are required!
-
-Example:
-Name: Daily Drills
-Order: Sequential
-5 G Major Scale
-4:30 Slow Arpeggios; Even tone across strings
-4.5, 4, :15, 2:00 Spiccato; Controlled bouncing bow; Start slow at the frog; Did the bounce stay even?`;
-
 // ---- Selector modal ----
 
 function openRoutineSelector() {

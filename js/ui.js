@@ -1227,6 +1227,66 @@ $('rev-boost').addEventListener('input', e => {
   saveSettings();
 });
 
+// Hybrid tap/relative-drag behaviour for range sliders.
+//   - TAP a point on the track  → thumb jumps there (absolute — native feel).
+//   - DRAG left/right anywhere   → thumb moves BY the drag distance from where it
+//                                  already is (relative), so you can nudge the
+//                                  value from anywhere without the thumb leaping
+//                                  to your finger first.
+// Native range inputs only do absolute tracking, so we suppress the native pointer
+// behaviour (preventDefault, with touch-action:none from CSS) and drive the value
+// ourselves, dispatching a synthetic 'input' so the existing handlers above still
+// run. Applied to the review volume + record-boost sliders and the settings
+// notification-volume slider.
+function makeHybridDragSlider(input) {
+  if (!input) return;
+  const min   = parseFloat(input.min)  || 0;
+  const max   = parseFloat(input.max)  || 100;
+  const step  = parseFloat(input.step) || 1;
+  const range = max - min;
+  const DRAG_PX = 3;                 // movement before a press counts as a drag
+
+  let startX = 0, startVal = 0, dragging = false, moved = false;
+
+  const apply = (v) => {
+    v = Math.max(min, Math.min(max, v));
+    v = Math.round((v - min) / step) * step + min;   // snap to step
+    v = parseFloat(v.toFixed(6));                     // drop float noise
+    if (parseFloat(input.value) === v) return;
+    input.value = v;
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  };
+
+  input.addEventListener('pointerdown', (e) => {
+    dragging = true; moved = false;
+    startX   = e.clientX;
+    startVal = parseFloat(input.value);
+    try { input.setPointerCapture(e.pointerId); } catch (_) {}
+    e.preventDefault();              // stop the native absolute thumb-jump
+  });
+  input.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    const dx = e.clientX - startX;
+    if (!moved && Math.abs(dx) > DRAG_PX) moved = true;
+    if (!moved) return;
+    const w = input.getBoundingClientRect().width || 1;
+    apply(startVal + (dx / w) * range);   // RELATIVE: move by the drag distance
+    e.preventDefault();
+  });
+  const end = (e) => {
+    if (!dragging) return;
+    dragging = false;
+    if (!moved) {                    // no drag → tap: jump to the touched point
+      const rect = input.getBoundingClientRect();
+      apply(min + ((e.clientX - rect.left) / (rect.width || 1)) * range);
+    }
+    try { input.releasePointerCapture(e.pointerId); } catch (_) {}
+  };
+  input.addEventListener('pointerup', end);
+  input.addEventListener('pointercancel', end);
+}
+['rev-vol', 'rev-boost', 's-vol'].forEach(id => makeHybridDragSlider($(id)));
+
 // =================================================
 // INFO & CLOSE BUTTONS
 // =================================================

@@ -19,6 +19,13 @@ input[type="search"], input[type="password"], textarea, [contenteditable="true"]
   user-select: text;
   -webkit-user-select: text;
 }
+/* Range sliders must own their drag gesture. Without this they inherit the global
+   touch-action:manipulation above, and iOS Safari can claim a horizontal drag as a
+   pan — making the thumb behave erratically (drag right, value snaps left). 'none'
+   delivers all pointer/touch events straight to the slider so the thumb tracks the
+   finger. Applies to the review volume + record-boost sliders and the settings
+   notification-volume slider. */
+input[type="range"] { touch-action: none; }
 html, body { width: 100%; height: 100%; overflow: hidden; }
 
 /* ══ bg-fill for safe-area edges ══ */
@@ -1097,19 +1104,32 @@ flex-grow: 1;
   font-size: clamp(22px, 6vw, 28px); font-weight: 700; line-height: 1;
   color: var(--color-green-light);
 }
-/* Plan-back button — fixed upper-left, shown on ready when routines enabled */
+/* Plan-back button — fixed upper-left, shown on ready when routines enabled.
+   Circular soft-dome (see _shared/design/soft-dome.md), mirroring #start-btn-inner
+   and the review player buttons. */
 #plan-back-btn {
   position: fixed;
   top: calc(var(--safe-top) + 10px);
   left: calc(var(--safe-l) + 12px);
   z-index: 100;
-  background: none; border: none;
-  color: rgba(255,255,255,0.55); cursor: pointer;
+  width: 48px; height: 48px; border-radius: 50%;
+  background:
+    radial-gradient(circle at 72% 25%, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 50%),
+    rgba(255,255,255,0.10);
+  border: 1.5px solid transparent;
+  box-shadow: -3px 4px 8px rgba(0,0,0,0.30);
+  color: rgba(255,255,255,0.78); cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  padding: 8px; -webkit-appearance: none;
-  transition: color 0.15s, opacity 0.15s;
+  padding: 0; -webkit-appearance: none;
+  transition: background 0.15s, transform 0.1s, box-shadow 0.15s, color 0.15s;
 }
-#plan-back-btn:active { color: rgba(255,255,255,0.95); }
+#plan-back-btn:active {
+  background:
+    radial-gradient(circle at 72% 25%, rgba(255,255,255,0.26) 0%, rgba(255,255,255,0) 50%),
+    rgba(255,255,255,0.17);
+  color: rgba(255,255,255,0.95);
+  transform: scale(0.95);
+}
 
 /* ══════════════════════════════════════
    ROUTINE EDITOR OVERLAY
@@ -1146,10 +1166,36 @@ flex-grow: 1;
   background: rgba(255,255,255,0.05); border-radius: 8px; padding: 10px 12px;
   margin: 0; line-height: 1.5;
 }
-/* Highlighted required fields in the format guide — the practice-screen orange,
-   so the two required tokens read as "the important ones" against the dark guide
-   and tie visually to the orange routine buttons. */
-.re-guidance-text .fg-key { color: var(--color-orange); font-weight: 700; }
+/* Highlighted required fields in the format guide — a lighter tint of the
+   practice-screen orange so the two required tokens read as "the important ones"
+   and stay legible on the dark guide. Applies in both the syntax box and the
+   commentary note. */
+.re-guidance .fg-key { color: #e8843c; font-weight: 700; }
+
+/* Section 2: commentary under the syntax box — plain Nunito prose, no box. */
+.re-guidance-note {
+  font-family: 'Nunito', sans-serif; font-size: 13px;
+  color: rgba(255,255,255,0.62); line-height: 1.5; margin: 10px 2px 0;
+}
+.re-guidance-note p { margin: 0 0 4px; }
+.re-guidance-note p:last-child { margin-bottom: 0; }
+
+/* Section 3: the example. "Example" lead-in label, then a read-only sample
+   styled like the entry textarea (.re-textarea) but dimmed/disabled-looking so
+   it can't be mistaken for a live, editable field. */
+.re-guidance-eg-label {
+  font-family: 'Nunito', sans-serif; font-size: 12px;
+  color: rgba(255,255,255,0.40); margin: 13px 2px 5px;
+  text-transform: uppercase; letter-spacing: 0.07em;
+}
+.re-guidance-eg {
+  font-family: 'Nunito', sans-serif; font-size: 14px;
+  white-space: pre-wrap; word-break: break-word;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.12); border-radius: 10px;
+  color: rgba(255,255,255,0.55); padding: 12px; margin: 0; line-height: 1.6;
+  opacity: 0.75; cursor: default; user-select: none;
+}
 .re-textarea {
   width: 100%; box-sizing: border-box; min-height: 200px;
   background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.20);
