@@ -132,3 +132,86 @@ function playBackToWork() {
   // High chime: C4, 8.0s decay, gain 0.30
   beep(261.6, 3.0, 0.30, 'sine', 0.0); // C4
 }
+
+// =================================================
+// iOS FIRST-ACQUIRE ROUTE-HEAL  (EXPERIMENT — 2026-06-03)
+// =================================================
+// WebKit bug 218012: the FIRST mic acquisition of a page load leaves WebAudio
+// output ducked to iOS's quiet earpiece/speakerphone route. Casey observed
+// (2026-06-03, PWA on iPhone) that launching with voice control on is near-
+// silent until a recording is reviewed (mic released → 'playback') and dismissed
+// (mic re-acquired → 'play-and-record') — after that round-trip everything is
+// loud for the rest of the session. So we perform that exact cycle ONCE,
+// automatically, right after the first acquire while still on the ready screen.
+// It mirrors openReview()/closeReview() (ui.js): vcStop → releaseMic → dwell on
+// the 'playback' rail → acquireMic → vcStart.
+//
+// Scope/safety:
+//   • Gated to iOS (navigator.audioSession present) — desktop browsers never
+//     have the route bug and the hook no-ops there.
+//   • Gated to voice-on launches AND phase === 'ready'. That guarantees the
+//     first acquire is the at-launch voice grab (before any MediaRecorder is
+//     running), so releaseMic() can NEVER truncate a live recording. _runMicRouteHeal
+//     re-checks phase and bails if the user has already pressed Start.
+//   • One-shot per page load. Healing once fixes the route for the whole session
+//     (same as the review round-trip does today).
+//   • The close chime that accompanies a real review ('G4 → C4', closeReview)
+//     is deliberately NOT replayed — the heal is silent.
+//
+// Permission note: the re-acquire is gesture-less. iOS grants getUserMedia per
+// page session, so re-acquiring moments after a successful grant should not
+// re-prompt — but this is iOS, so it's device-test-gated. If it ever re-prompts
+// or disrupts voice, flip _MIC_ROUTE_HEAL to false.
+const _MIC_ROUTE_HEAL          = true;   // experiment master switch
+const _MIC_ROUTE_HEAL_KICK_MS  = 200;    // let voice reach 'listening' + clear the acquire call stack
+const _MIC_ROUTE_HEAL_DWELL_MS = 450;    // dwell on the 'playback' rail so iOS re-negotiates the output route
+let   _micRouteHealed          = false;  // one-shot per page load
+
+// Shared-mic onMicAcquired hook (see _shared/js/mic.js). Fires after every
+// successful acquire; we act at most once.
+function onMicAcquired() {
+  if (!_MIC_ROUTE_HEAL || _micRouteHealed) return;
+  if (!navigator.audioSession) return;                       // iOS-only quirk
+  if (typeof phase !== 'undefined' && phase !== 'ready') return; // only heal at launch/ready
+  const _voiceOn = settings.voiceCommands &&
+    !(typeof isVoiceSessionSuppressed === 'function' && isVoiceSessionSuppressed());
+  if (!_voiceOn) return;                                      // scopes to the at-launch voice grab
+  _micRouteHealed = true;  // claim the one-shot up front so the re-acquire below can't re-arm it
+  console.log('[mic] route-heal: scheduling one-shot off/on cycle (experiment)');
+  setTimeout(_runMicRouteHeal, _MIC_ROUTE_HEAL_KICK_MS);
+}
+
+function _runMicRouteHeal() {
+  if (typeof phase !== 'undefined' && phase !== 'ready') {
+    console.log('[mic] route-heal: skipped — left ready before cycle');
+    return;
+  }
+  if (!micStream) {
+    console.log('[mic] route-heal: skipped — no live mic');
+    return;
+  }
+  console.log('[mic] route-heal: mic OFF (release → playback rail)');
+  if (typeof vcStop === 'function') vcStop();
+  if (typeof releaseMic === 'function') releaseMic();        // session → 'playback', loud media rail
+  // Dwell on 'playback' so iOS actions the route change, then re-acquire.
+  setTimeout(() => {
+    if (typeof phase !== 'undefined' && phase !== 'ready') {
+      console.log('[mic] route-heal: aborted mid-cycle — left ready');
+      return;
+    }
+    if (typeof acquireMic !== 'function') return;
+    acquireMic().then(() => {
+      console.log('[mic] route-heal: mic ON (re-acquired → play-and-record)');
+      const _voiceOk = settings.voiceCommands &&
+        !(typeof isVoiceSessionSuppressed === 'function' && isVoiceSessionSuppressed());
+      if (_voiceOk && typeof vcStart === 'function') {
+        // vcStart resolves false if the recognizer didn't reach 'listening'. A heal
+        // that restored the mic but left voice dead is the worst silent outcome —
+        // surface it. (Recovery still happens on the next gesture/phase-change vcStart.)
+        Promise.resolve(vcStart()).then(ok => {
+          if (!ok) console.warn('[mic] route-heal: voice did NOT restart after re-acquire');
+        });
+      }
+    }).catch(err => console.warn('[mic] route-heal re-acquire failed:', err));
+  }, _MIC_ROUTE_HEAL_DWELL_MS);
+}
