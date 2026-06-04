@@ -106,6 +106,11 @@ function render() {
   //     the final rest (after the last chunk); earlier rests show no prompts.
   // So a routine with both shows the warm prompts exactly twice — the overall
   // goal at the very start and the overall retrospective at the very end.
+  //
+  // Per-chunk override (no overall goal): if the upcoming chunk carries its own
+  // goal and/or strategy, those already show in #chunk-info, so the generic
+  // opening questions would be redundant — suppress them and let the chunk info
+  // stand alone on the start screen.
   const activeRoutine = (typeof getActiveRoutine === 'function') ? getActiveRoutine() : null;
   const overallGoal   = activeRoutine && activeRoutine.overallGoal;
   const overallRetro  = activeRoutine && activeRoutine.overallRetrospective;
@@ -114,8 +119,13 @@ function render() {
 
   let restQLines = null; // null → hide #rest-questions entirely
   if (isReady) {
-    if (overallGoal) restQLines = onFirstChunk ? [overallGoal] : null;
-    else             restQLines = settings.restQ || ['', '', ''];
+    if (overallGoal) {
+      restQLines = onFirstChunk ? [overallGoal] : null;
+    } else if (activeChunk && (activeChunk.goal || activeChunk.strategy)) {
+      restQLines = null; // chunk's own goal/strategy stands alone — no generic opening Qs
+    } else {
+      restQLines = settings.restQ || ['', '', ''];
+    }
   } else if (isRest) {
     if (overallRetro) {
       restQLines = onLastChunk ? [overallRetro] : null;
